@@ -12,7 +12,7 @@ endif()
 project ("UnitUpdater")
 
 # Add source to this project's executable.
-add_executable (UnitUpdater "UnitUpdater.cpp" "UnitUpdater.h" "main.cpp" "udp_client.cpp" "tcp_server.cpp" "tcp_server.h" "udp_client.h" "timer.h" "timer.cpp")
+add_executable (UnitUpdater "UnitUpdater.cpp" "UnitUpdater.h" "main.cpp" "udp_client.cpp" "tcp_server.cpp" "tcp_server.h" "udp_client.h" "timer.h" "timer.cpp" "project_messages.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET UnitUpdater PROPERTY CXX_STANDARD 20)

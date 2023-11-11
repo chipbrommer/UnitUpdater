@@ -53,10 +53,11 @@ int UnitUpdater::Start()
 
 int UnitUpdater::ListenForInterrupt()
 {
-	char buffer[200];
-	int size = sizeof(buffer);
-	int start = mTimer->GetMSecTicks();
-	int elapsed = 0;
+	char buffer[200];						// buffer to hold data received
+	int size = sizeof(buffer);				// size of the buffer
+	int start = mTimer->GetMSecTicks();		// time of start
+	int elapsed = 0;						// time elapsed count
+	bool packetReceived = false;			// Verify the packet is what we desire
 
 	while (elapsed <= mMaxTimeLengthInMSec)
 	{
@@ -69,15 +70,21 @@ int UnitUpdater::ListenForInterrupt()
 		}
 		else if (bytesReceived > 0)
 		{
-			// Verify the packet is what we desire
-			bool packetReceived = false;
-
 			// @todo - check for packet here. 
+			if (buffer[0] == SYNC1 &&
+				buffer[1] == SYNC2 &&
+				buffer[2] == SYNC3 &&
+				buffer[3] == SYNC4 &&
+				buffer[5] == sizeof(UPDATER_BOOT_INTERRUPT_MESSAGE)
+				)
+			{
+				packetReceived = true;
+			}
 
 			// handle packet reception
 			if (packetReceived)
 			{
-				return -1;
+				// @todo handle reception
 			}
 		}
 

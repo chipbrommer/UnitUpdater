@@ -4,6 +4,7 @@
 #include "tcp_server.h"
 #include "udp_client.h"
 #include "timer.h"
+#include "project_messages.h"
 
 constexpr int DEFAULT_TIMELENGTH_MSEC = 1000;
 
