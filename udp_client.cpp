@@ -67,9 +67,10 @@ namespace Essentials
 
 		UDP_Client::~UDP_Client()
 		{
+			DisableBroadcastSender();
+			CloseBroadcastListeners();
+			CloseMulticastGroups();
 			CloseUnicast();
-			CloseBroadcast();
-			CloseMulticast();
 
 #ifdef WIN32
 			WSACleanup();
@@ -206,7 +207,7 @@ namespace Essentials
 			return 0;
 		}
 
-		int8_t UDP_Client::DisableBroadcast()
+		int8_t UDP_Client::DisableBroadcastSender()
 		{
 			if (mBroadcastSocket == INVALID_SOCKET)
 			{
@@ -236,7 +237,7 @@ namespace Essentials
 			}
 
 			// success
-			CloseMulticast();
+			CloseMulticastGroups();
 			return 0;
 		}
 
@@ -848,7 +849,7 @@ namespace Essentials
 			mSocket = INVALID_SOCKET;
 		}
 
-		void UDP_Client::CloseBroadcast()
+		void UDP_Client::CloseBroadcastListeners()
 		{
 			closesocket(mBroadcastSocket);
 			mBroadcastSocket = INVALID_SOCKET;
@@ -861,7 +862,7 @@ namespace Essentials
 			mBroadcastListeners.clear();
 		}
 
-		void UDP_Client::CloseMulticast()
+		void UDP_Client::CloseMulticastGroups()
 		{
 			for (const auto& i : mMulticastSockets)
 			{

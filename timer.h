@@ -33,7 +33,6 @@
 //
 #ifndef     CPP_TIMER					// Define the cpp timer class. 
 #define     CPP_TIMER
-#endif
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -101,3 +100,5 @@ namespace Essentials
 
 	}
 }
+
+#endif // CPP_TIMER

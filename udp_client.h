@@ -178,9 +178,9 @@ namespace Essentials
 			//// <returns>0 if successful, -1 if fails. Call Serial::GetLastError to find out more.</returns>
 			int8_t AddBroadcastListener(const int16_t port);
 
-			/// <summary>Disables broadcast and cleans up</summary>
+			/// <summary>Closes broadcast and cleans up</summary>
 			/// <returns>0 if successful, -1 if fails. Call Serial::GetLastError to find out more.</returns>
-			int8_t DisableBroadcast();
+			int8_t DisableBroadcastSender();
 
 			/// <summary>Enables multicast sockets and adds the first group. To add more groups, use AddMulticastGroup</summary>
 			/// <param name="groupIP"> -[in]- Address of multicast group.</param>
@@ -277,11 +277,11 @@ namespace Essentials
 			/// <summary>Closes the unicast client and cleans up</summary>
 			void CloseUnicast();
 
-			/// <summary>Closes the broadcast client and cleans up</summary>
-			void CloseBroadcast();
+			/// <summary>Closes the broadcast listeners and cleans up</summary>
+			void CloseBroadcastListeners();
 
-			/// <summary>Closes the broadcast client and cleans up</summary>
-			void CloseMulticast();
+			/// <summary>Closes the multicast groups and cleans up</summary>
+			void CloseMulticastGroups();
 
 			/// <summary>Sets the number of hops outbound multicast messages live for.</summary>
 			/// <param name="ttl"> -[in]- Number of hops multicast messages live for 0-255</param>

@@ -10,6 +10,14 @@ int main()
 	// Pass files into UnitUpdater
 
 	UnitUpdater uu;
+	uu.Setup(8000, 8005);
+	int start = uu.Start();
+
+	if (start < 0)
+	{
+		std::cout << "Failed to start!\n";
+	}
+
 	bool broadcastReceived = false;
 
 	if (uu.ListenForInterrupt())
@@ -20,6 +28,10 @@ int main()
 	if (broadcastReceived)
 	{
 		// handle tcp stuffs and listen for transactions. 
+	}
+	else
+	{
+		std::cout << "NOTICE: Broadcast not found!\n";
 	}
 
 	// Close after timeout

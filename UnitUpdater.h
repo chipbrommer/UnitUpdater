@@ -20,10 +20,11 @@ public:
     void Close();
 protected:
 private:
-    int maxTimeLengthInMSec;
-    int broadcastPort;
-    int serverPort;
-    Essentials::Communications::UDP_Client* udp;
-    Essentials::Communications::TCP_Server* tcp;
-    Essentials::Utilities::Timer*           timer;
+    int mLastError;
+    int mMaxTimeLengthInMSec;
+    int mBroadcastPort;
+    int mServerPort;
+    Essentials::Communications::UDP_Client* mUdp;
+    Essentials::Communications::TCP_Server* mTcp;
+    Essentials::Utilities::Timer*           mTimer;
 };

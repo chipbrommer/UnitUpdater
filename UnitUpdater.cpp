@@ -3,27 +3,27 @@
 
 UnitUpdater::UnitUpdater() 
 {
-    broadcastPort = 0;
-    serverPort = 0;
-	maxTimeLengthInMSec = DEFAULT_TIMELENGTH_MSEC;
-	udp = new Essentials::Communications::UDP_Client();
-    tcp = new Essentials::Communications::TCP_Server();
-	timer = Essentials::Utilities::Timer::GetInstance();
-	std::cout << tcp->TcpServerVersion;
+    mBroadcastPort = 0;
+    mServerPort = 0;
+	mMaxTimeLengthInMSec = DEFAULT_TIMELENGTH_MSEC;
+	mUdp = new Essentials::Communications::UDP_Client();
+    mTcp = new Essentials::Communications::TCP_Server();
+	mTimer = Essentials::Utilities::Timer::GetInstance();
+	std::cout << mTcp->TcpServerVersion;
 }
 
 UnitUpdater::UnitUpdater(int bPort, int tPort) : UnitUpdater()
 {
-	Setup(broadcastPort, serverPort);
+	Setup(bPort, tPort);
 }
 
 int UnitUpdater::Setup(int bPort, int tPort)
 {
-	broadcastPort = bPort;
-	serverPort = tPort;
+	mBroadcastPort = bPort;
+	mServerPort = tPort;
 
 	// Setup the UDP client to look for a broadcast on the desired port
-	udp->AddBroadcastListener(broadcastPort);
+	//mUdp->AddBroadcastListener(mBroadcastPort);
 	// Setup TCP to serve on any network interface on the desired port
 	//tcp->Configure("0.0.0.0",serverPort);
 
@@ -33,7 +33,7 @@ int UnitUpdater::Setup(int bPort, int tPort)
 
 void UnitUpdater::SetMaxListeningTime(int mSecTimeout)
 {
-	maxTimeLengthInMSec = mSecTimeout;
+	mMaxTimeLengthInMSec = mSecTimeout;
 }
 
 UnitUpdater::~UnitUpdater() 
@@ -43,25 +43,28 @@ UnitUpdater::~UnitUpdater()
 
 int UnitUpdater::Start()
 {
-    udp->AddBroadcastListener(broadcastPort);
+	if (mBroadcastPort == 0 || mServerPort == 0)
+	{
+		return -1;
+	}
 
-    return 0;
+    return mUdp->AddBroadcastListener(mBroadcastPort);
 }
 
 int UnitUpdater::ListenForInterrupt()
 {
 	char buffer[200];
 	int size = sizeof(buffer);
-	int start = timer->GetMSecTicks();
+	int start = mTimer->GetMSecTicks();
 	int elapsed = 0;
 
-	while (elapsed <= maxTimeLengthInMSec)
+	while (elapsed <= mMaxTimeLengthInMSec)
 	{
-		int bytesReceived = udp->ReceiveBroadcastFromListenerPort(buffer, size, broadcastPort);
+		int bytesReceived = mUdp->ReceiveBroadcastFromListenerPort(buffer, size, mBroadcastPort);
 
 		if (bytesReceived == -1)
 		{
-			std::cout << udp->GetLastError() << std::endl;
+			std::cout << mUdp->GetLastError() << std::endl;
 			break;
 		}
 		else if (bytesReceived > 0)
@@ -78,7 +81,7 @@ int UnitUpdater::ListenForInterrupt()
 			}
 		}
 
-		elapsed = timer->GetMSecTicks() - start;
+		elapsed = mTimer->GetMSecTicks() - start;
 	}
 
 	return 0;
@@ -86,5 +89,5 @@ int UnitUpdater::ListenForInterrupt()
 
 void UnitUpdater::Close()
 {
-	timer->ReleaseInstance();
+	mTimer->ReleaseInstance();
 }
