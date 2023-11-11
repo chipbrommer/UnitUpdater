@@ -5,9 +5,10 @@ UnitUpdater::UnitUpdater()
 {
     broadcastPort = 0;
     serverPort = 0;
-	maxTimeLengthInSeconds = DEFAULT_TIMELENGTH;
+	maxTimeLengthInMSec = DEFAULT_TIMELENGTH_MSEC;
 	udp = new Essentials::Communications::UDP_Client();
     tcp = new Essentials::Communications::TCP_Server();
+	timer = Essentials::Utilities::Timer::GetInstance();
 	std::cout << tcp->TcpServerVersion;
 }
 
@@ -30,12 +31,15 @@ int UnitUpdater::Setup(int bPort, int tPort)
 	return 0;
 }
 
-void UnitUpdater::SetMaxListeningTime(double timeout)
+void UnitUpdater::SetMaxListeningTime(int mSecTimeout)
 {
-	maxTimeLengthInSeconds = timeout;
+	maxTimeLengthInMSec = mSecTimeout;
 }
 
-UnitUpdater::~UnitUpdater() {}
+UnitUpdater::~UnitUpdater() 
+{
+	Close();
+}
 
 int UnitUpdater::Start()
 {
@@ -44,29 +48,43 @@ int UnitUpdater::Start()
     return 0;
 }
 
-void UnitUpdater::ListenForInterrupt()
+int UnitUpdater::ListenForInterrupt()
 {
 	char buffer[200];
 	int size = sizeof(buffer);
-	bool interruptReceived = false;
-	double time = 0;
+	int start = timer->GetMSecTicks();
+	int elapsed = 0;
 
-	while (!interruptReceived && time <= maxTimeLengthInSeconds) 
+	while (elapsed <= maxTimeLengthInMSec)
 	{
-
 		int bytesReceived = udp->ReceiveBroadcastFromListenerPort(buffer, size, broadcastPort);
 
 		if (bytesReceived == -1)
 		{
 			std::cout << udp->GetLastError() << std::endl;
+			break;
 		}
 		else if (bytesReceived > 0)
 		{
 			// Verify the packet is what we desire
+			bool packetReceived = false;
+
+			// @todo - check for packet here. 
+
+			// handle packet reception
+			if (packetReceived)
+			{
+				return -1;
+			}
 		}
-		else
-		{
-			std::cout << "No Data." << std::endl;
-		}
+
+		elapsed = timer->GetMSecTicks() - start;
 	}
+
+	return 0;
+}
+
+void UnitUpdater::Close()
+{
+	timer->ReleaseInstance();
 }

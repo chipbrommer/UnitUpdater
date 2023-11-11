@@ -3,8 +3,9 @@
 #include <iostream>
 #include "tcp_server.h"
 #include "udp_client.h"
+#include "timer.h"
 
-constexpr double DEFAULT_TIMELENGTH = 1.0;
+constexpr int DEFAULT_TIMELENGTH_MSEC = 1000;
 
 class UnitUpdater
 {
@@ -13,14 +14,16 @@ public:
     UnitUpdater(int bPort, int tPort);
     ~UnitUpdater();
     int Setup(int bPort, int tPort);
-    void SetMaxListeningTime(double timeout);
+    void SetMaxListeningTime(int mSecTimeout);
     int Start();
-    void ListenForInterrupt();
+    int ListenForInterrupt();
+    void Close();
 protected:
 private:
-    double maxTimeLengthInSeconds;
+    int maxTimeLengthInMSec;
     int broadcastPort;
     int serverPort;
     Essentials::Communications::UDP_Client* udp;
     Essentials::Communications::TCP_Server* tcp;
+    Essentials::Utilities::Timer*           timer;
 };

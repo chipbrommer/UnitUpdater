@@ -10,10 +10,22 @@ int main()
 	// Pass files into UnitUpdater
 
 	UnitUpdater uu;
+	bool broadcastReceived = false;
+
+	if (uu.ListenForInterrupt())
+	{
+		broadcastReceived = true;
+	}
+
+	if (broadcastReceived)
+	{
+		// handle tcp stuffs and listen for transactions. 
+	}
 
 	// Close after timeout
 
 	// proper clean up
+	uu.Close();
 
 	return 0;
 }
