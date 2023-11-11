@@ -4,18 +4,23 @@
 #include "tcp_server.h"
 #include "udp_client.h"
 
+constexpr double DEFAULT_TIMELENGTH = 1.0;
+
 class UnitUpdater
 {
 public:
     UnitUpdater();
-    UnitUpdater(int broadcastPort, int serverPort);
+    UnitUpdater(int bPort, int tPort);
     ~UnitUpdater();
+    int Setup(int bPort, int tPort);
+    void SetMaxListeningTime(double timeout);
     int Start();
-    void ListenForBroadcast();
+    void ListenForInterrupt();
 protected:
 private:
+    double maxTimeLengthInSeconds;
     int broadcastPort;
     int serverPort;
-    Essentials::Communications::UDP_Client udp;
-    Essentials::Communications::TCP_Server tcp;
+    Essentials::Communications::UDP_Client* udp;
+    Essentials::Communications::TCP_Server* tcp;
 };

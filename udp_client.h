@@ -10,7 +10,7 @@
 //          name                        reason included
 //          --------------------        ---------------------------------------
 #ifdef WIN32
-#include <stdint.h>						// Standard integer types
+#include <cstdint>						// Standard integer types
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")

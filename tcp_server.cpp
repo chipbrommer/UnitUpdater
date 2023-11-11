@@ -1,14 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
-//!
 //! @file		tcp_server.cpp
-//! 
 //! @brief		Implementation of the tcp server class
-//! 
 //! @author		Chip Brommer
-//! 
-//! @date		< 04 / 30 / 2023 > Initial Start Date
-//!
-/*****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -23,22 +17,41 @@ namespace Essentials
 {
 	namespace Communications
 	{
-		TCP_Server::TCP_Server()
-		{
-			mTitle = "TCP Server";
-			mAddress = "\n";
-			mPort = -1;
-			mLastError = TcpServerError::NONE;
+		const std::string TCP_Server::TcpServerVersion = "TCP Server v" +
+			std::to_string(TCP_SERVER_VERSION_MAJOR) + "." +
+			std::to_string(TCP_SERVER_VERSION_MINOR) + "." +
+			std::to_string(TCP_SERVER_VERSION_PATCH) + " - b" +
+			std::to_string(TCP_SERVER_VERSION_BUILD) + ".\n";
 
+		std::map<TCP_Server::TcpServerError, std::string> TCP_Server::TcpServerErrorMap = {
+			{ TcpServerError::NONE, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::NONE)) + ": No error.") },
+			{ TcpServerError::BAD_ADDRESS, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::BAD_ADDRESS)) + ": Bad address.") },
+			{ TcpServerError::ADDRESS_NOT_SET, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::ADDRESS_NOT_SET)) + ": Address not set.") },
+			{ TcpServerError::BAD_PORT, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::BAD_PORT)) + ": Bad port.") },
+			{ TcpServerError::PORT_NOT_SET, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::PORT_NOT_SET)) + ": Port not set.") },
+			{ TcpServerError::SERVER_ALREADY_STARTED, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::SERVER_ALREADY_STARTED)) + ": Server already started.") },
+			{ TcpServerError::FAILED_TO_CONNECT, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::FAILED_TO_CONNECT)) + ": Failed to connect.") },
+			{ TcpServerError::WINSOCK_FAILURE, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::WINSOCK_FAILURE)) + ": Winsock creation failure.") },
+			{ TcpServerError::WINDOWS_SOCKET_OPEN_FAILURE, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::WINDOWS_SOCKET_OPEN_FAILURE)) + ": Socket open failure.") },
+			{ TcpServerError::LINUX_SOCKET_OPEN_FAILURE, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::LINUX_SOCKET_OPEN_FAILURE)) + ": Socket open failure.") },
+			{ TcpServerError::ADDRESS_NOT_SUPPORTED, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::ADDRESS_NOT_SUPPORTED)) + ": Address not supported.") },
+			{ TcpServerError::BIND_FAILED, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::BIND_FAILED)) + ": Binding to socket failed.") },
+			{ TcpServerError::LISTEN_FAILED, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::LISTEN_FAILED)) + ": Listener setup failed.") },
+			{ TcpServerError::CONNECTION_FAILED, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::CONNECTION_FAILED)) + ": Connection failed.") },
+			{ TcpServerError::ACCEPT_FAILED, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::ACCEPT_FAILED)) + ": Accepting new client failed.") },
+			{ TcpServerError::ECHO_FAILED, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::ECHO_FAILED)) + ": Echo to client failed.") },
+			{ TcpServerError::RECEIVE_FAILED, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::RECEIVE_FAILED)) + ": Receive from client failed.") }
+	};
+
+		TCP_Server::TCP_Server() : mTitle("TCP Server"), mAddress("\n"), mPort(-1), mLastError(TcpServerError::NONE)
 #ifdef WIN32
-			mWsaData = {};
-			mSocket = INVALID_SOCKET;
+			, mWsaData(), mSocket(INVALID_SOCKET)
 #else
-			mSocket = -1;
+			, mSocket(-1)
 #endif
-		}
+		{}
 
-		TCP_Server::TCP_Server(const std::string address, const int16_t port) : TCP_Server()
+		TCP_Server::TCP_Server(const std::string& address, const int16_t port) : TCP_Server()
 		{
 			if (ValidateIP(address) >= 0)
 			{
@@ -49,7 +62,7 @@ namespace Essentials
 				mLastError = TcpServerError::BAD_ADDRESS;
 			}
 
-			if (ValidatePort(port) == true)
+			if (ValidatePort(port))
 			{
 				mPort = port;
 			}
@@ -62,31 +75,6 @@ namespace Essentials
 		TCP_Server::~TCP_Server()
 		{
 			Stop();
-		}
-
-		int8_t TCP_Server::Configure(const std::string address, const int16_t port)
-		{
-			if (ValidateIP(address) >= 0)
-			{
-				mAddress = address;
-			}
-			else
-			{
-				mLastError = TcpServerError::BAD_ADDRESS;
-				return -1;
-			}
-
-			if (ValidatePort(port) == true)
-			{
-				mPort = port;
-			}
-			else
-			{
-				mLastError = TcpServerError::BAD_PORT;
-				return -1;
-			}
-
-			return 0;
 		}
 
 		int8_t TCP_Server::Start()
