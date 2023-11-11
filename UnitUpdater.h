@@ -8,10 +8,14 @@ class UnitUpdater
 {
 public:
     UnitUpdater();
-    UnitUpdater(uint16_t broadcastPort, uint16_t serverPort);
+    UnitUpdater(int broadcastPort, int serverPort);
     ~UnitUpdater();
+    int Start();
     void ListenForBroadcast();
 protected:
 private:
-
+    int broadcastPort;
+    int serverPort;
+    Essentials::Communications::UDP_Client udp;
+    Essentials::Communications::TCP_Server tcp;
 };
