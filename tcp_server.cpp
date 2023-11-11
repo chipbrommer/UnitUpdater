@@ -51,7 +51,12 @@ namespace Essentials
 #endif
 		{}
 
-		TCP_Server::TCP_Server(const std::string& address, const int16_t port) : TCP_Server()
+		TCP_Server::TCP_Server(const std::string& address, const int port) : TCP_Server()
+		{
+			Configure(address, port);
+		}
+
+		int TCP_Server::Configure(const std::string& address, const int port)
 		{
 			if (ValidateIP(address) >= 0)
 			{
@@ -60,6 +65,7 @@ namespace Essentials
 			else
 			{
 				mLastError = TcpServerError::BAD_ADDRESS;
+				return -1;
 			}
 
 			if (ValidatePort(port))
@@ -69,7 +75,10 @@ namespace Essentials
 			else
 			{
 				mLastError = TcpServerError::BAD_PORT;
+				return -1;
 			}
+
+			return 0;
 		}
 
 		TCP_Server::~TCP_Server()
@@ -77,7 +86,7 @@ namespace Essentials
 			Stop();
 		}
 
-		int8_t TCP_Server::Start()
+		int TCP_Server::Start()
 		{
 			if (mAddress == "\n" || mAddress.empty())
 			{
@@ -168,6 +177,13 @@ namespace Essentials
 				mMonitorThread.join();
 			}
 
+			// Close all client sockets gracefully
+			for (auto& client : mClientThreads)
+			{
+				//SendShutdownMessage(client); // Implement this function to send a shutdown message
+				//CloseClientSocket(client);   // Implement this function to close the client socket
+			}
+
 #ifdef WIN32
 			closesocket(mSocket);
 			WSACleanup();
@@ -184,7 +200,7 @@ namespace Essentials
 			return TcpServerErrorMap[mLastError];
 		}
 
-		int8_t TCP_Server::ValidateIP(const std::string& ip)
+		int TCP_Server::ValidateIP(const std::string& ip)
 		{
 			// Regex expression for validating IPv4
 			std::regex ipv4("(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])");
@@ -207,15 +223,13 @@ namespace Essentials
 			return -1;
 		}
 
-		bool TCP_Server::ValidatePort(const int16_t port)
+		bool TCP_Server::ValidatePort(const int port)
 		{
 			return (port > -1 && port < 99999);
 		}
 
 		void TCP_Server::Monitor()
 		{
-			std::vector<std::thread> clientThreads;  // Store client threads
-
 			while (!mStopFlag) 
 			{
 				sockaddr_in clientAddress{};
@@ -224,6 +238,7 @@ namespace Essentials
 
 				if (clientSocket == -1) 
 				{
+					std::cerr << "Error accepting new client: " << strerror(errno) << std::endl;
 					mLastError = TcpServerError::ACCEPT_FAILED;
 					continue;
 				}
@@ -237,16 +252,8 @@ namespace Essentials
 
 				// Handle the client connection in a separate thread
 				std::thread clientThread(&TCP_Server::HandleClient, this, clientSocket, clientIP);
-				clientThreads.push_back(std::move(clientThread));
+				mClientThreads.push_back(std::move(clientThread));
 
-				// Clean up finished client threads
-				CleanUpClientThreads(clientThreads);
-			}
-
-			// Wait for all client threads to finish
-			for (auto& thread : clientThreads) 
-			{
-				thread.join();
 			}
 		}
 
@@ -290,14 +297,60 @@ namespace Essentials
 #endif
 		}
 
-		void TCP_Server::CleanUpClientThreads(std::vector<std::thread>& clientThreads)
+		// Function to send a shutdown message to all connected clients
+		//void TCP_Server::SendShutdownMessageToAllClients()
+		//{
+		//	const char* shutdownMessage = "SERVER_SHUTDOWN";
+
+		//	for (auto& clientThread : mClientThreads)
+		//	{
+		//		// Assuming each client thread is associated with a client object that has a socket member
+		//		int32_t clientSocket = /* extract client socket from the associated client object */;
+		//		send(clientSocket, shutdownMessage, strlen(shutdownMessage), 0);
+		//	}
+		//}
+
+		//// Function to close all client sockets
+		//void TCP_Server::CloseAllClientSockets()
+		//{
+		//	for (auto& clientThread : mClientThreads)
+		//	{
+		//		// Assuming each client thread is associated with a client object that has a socket member
+		//		int32_t clientSocket = /* extract client socket from the associated client object */;
+
+		//		// Close the client socket
+		//		CloseClientSocket(clientSocket);
+		//	}
+
+		//	// Clear the vector of client threads
+		//	mClientThreads.clear();
+		//}
+
+		// Function to send a shutdown message to the client
+		int TCP_Server::SendShutdownMessage(int32_t clientSocket)
 		{
-			for (auto it = clientThreads.begin(); it != clientThreads.end();) 
+			const char* shutdownMessage = "SERVER_SHUTDOWN";
+			return send(clientSocket, shutdownMessage, strlen(shutdownMessage), 0);
+		}
+
+		// Function to close a client socket
+		void TCP_Server::CloseClientSocket(int32_t clientSocket)
+		{
+#ifdef WIN32
+			closesocket(clientSocket);
+#else
+			close(clientSocket);
+#endif
+		}
+
+		void TCP_Server::CleanUpClientThreads()
+		{
+			for (auto it = mClientThreads.begin(); it != mClientThreads.end();) 
 			{
 				if (it->joinable()) 
 				{
 					it->join();
-					it = clientThreads.erase(it);
+					it = mClientThreads.erase(it);
 				}
 				else 
 				{

@@ -301,6 +301,11 @@ namespace Essentials
 			/// <returns>The port number, else -1 on error. Call UDP_Client::GetLastError to find out more.</returns>
 			int16_t GetPortOfLastReceive();
 
+			/// <summary>Get the information of the last messages sender</summary>
+			/// <param name="ip"> -[out]- ip address of last sender</param>
+			/// <param name="port"> -[out]- port of last sender</param>
+			void GetLastSendersInfo(std::string& ip, int& port);
+
 			/// <summary>Get the last error in string format</summary>
 			/// <returns>The last error in a formatted string</returns>
 			std::string GetLastError();

@@ -87,7 +87,7 @@ namespace Essentials
 			/// <summary>Constructor with default parameters</summary>
 			/// <param name="address"></param>
 			/// <param name="port"></param>
-			explicit TCP_Server(const std::string& address, const int16_t port);
+			explicit TCP_Server(const std::string& address, const int port);
 
 			/// <summary>Default deconstructor</summary>
 			~TCP_Server();
@@ -96,11 +96,11 @@ namespace Essentials
 			/// <param name="address"> -[in]- Address to serve the TCP server on.</param>
 			/// <param name="port"> -[in]- Port to serve the TCP server on.</param>
 			/// <returns>0 if successful, -1 if fails. Call Serial::GetLastError to find out more.</returns>
-			int8_t Configure(const std::string& address, const int16_t port);
+			int Configure(const std::string& address, const int port);
 
 			/// <summary>Starts the TCP server.</summary>
 			/// <returns>0 if successful, -1 if fails. Call Serial::GetLastError to find out more.</returns>
-			int8_t Start();
+			int Start();
 
 			/// <summary>Stops the TCP server if it is running and cleans up the monitor thread.</summary>
 			void Stop();
@@ -114,12 +114,12 @@ namespace Essentials
 			/// <summary>Validates an IP address is IPv4 or IPv6</summary>
 			/// <param name="ip"> -[in]- IP Address to be validated</param>
 			/// <returns>-1 = bad IP, 1 = valid IPv4, 2 = valid IPv6</returns>
-			int8_t ValidateIP(const std::string& ip);
+			int ValidateIP(const std::string& ip);
 
 			/// <summary>Validates a port number is between 0-99999</summary>
 			/// <param name="port"> -[in]- Port number to be validated</param>
 			/// <returns>true = valid, false = invalid</returns>
-			bool ValidatePort(const int16_t port);
+			bool ValidatePort(const int port);
 
 			/// <summary>Starts a thread to monitor the TCP connection.</summary>
 			void Monitor();
@@ -129,16 +129,20 @@ namespace Essentials
 			/// <param name="clientIP"> -[in]- address of the client</param>
 			void HandleClient(int32_t clientSocket, const std::string& clientIP);
 
+			int SendShutdownMessage(int32_t clientSocket);
+
+			void CloseClientSocket(int32_t clientSocket);
+
 			/// <summary>Cleans up a vector of client threads.</summary>
-			/// <param name="clientThreads"> -[in]- A vector of threads, each an individual connection to a single client.</param>
-			void CleanUpClientThreads(std::vector<std::thread>& clientThreads);
+			void CleanUpClientThreads();
 
 			std::string mTitle;					// Title of the class - used when using CPP_LOGGER
 			std::string mAddress;				// Address of the TCP server
-			int16_t mPort;						// Port of the TCP server
+			int mPort;							// Port of the TCP server
 			TcpServerError mLastError;			// Holds last error of the TCP server
 			std::thread mMonitorThread;			// Holds the thread for the monitor. 
 			std::atomic<bool> mStopFlag;		// Stop flag for the server. 
+			std::vector<std::thread> mClientThreads;  // A vector of threads, each an individual connection to a single client.
 
 #ifdef WIN32
 			WSADATA mWsaData;

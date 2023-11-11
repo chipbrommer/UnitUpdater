@@ -22,18 +22,16 @@ int UnitUpdater::Setup(int bPort, int tPort)
 	mBroadcastPort = bPort;
 	mServerPort = tPort;
 
-	// Setup the UDP client to look for a broadcast on the desired port
-	//mUdp->AddBroadcastListener(mBroadcastPort);
 	// Setup TCP to serve on any network interface on the desired port
-	//tcp->Configure("0.0.0.0",serverPort);
+	mTcp->Configure("0.0.0.0",mServerPort);
 
 	// Default return
 	return 0;
 }
 
-void UnitUpdater::SetMaxListeningTime(int mSecTimeout)
+void UnitUpdater::SetMaxListeningTime(int msecTimeout)
 {
-	mMaxTimeLengthInMSec = mSecTimeout;
+	mMaxTimeLengthInMSec = msecTimeout;
 }
 
 UnitUpdater::~UnitUpdater() 
@@ -43,22 +41,54 @@ UnitUpdater::~UnitUpdater()
 
 int UnitUpdater::Start()
 {
-	if (mBroadcastPort == 0 || mServerPort == 0)
+	if (mServerPort == 0)
 	{
 		return -1;
 	}
 
-    return mUdp->AddBroadcastListener(mBroadcastPort);
+	// Start the tcp connection
+	if (mTcp->Start() < 0)
+	{
+		std::cerr << "Failed to start the server." << std::endl;
+		std::cout << mTcp->GetLastError();
+		return 1;
+	}
+
+	for (;;)
+	{
+		//// Listen for incoming connections and handle message requests
+		//int32_t clientSocket = mTcp->Accept(); 
+
+		//if (clientSocket == -1)
+		//{
+		//	// Handle the error, log it, etc.
+		//	std::cerr << "Error accepting incoming connection." << std::endl;
+		//	continue;
+		//}
+
+		//// Handle the client connection in a separate thread or function
+		//HandleClient(clientSocket);
+	}
+
+	mTcp->Stop();
 }
 
 int UnitUpdater::ListenForInterrupt()
 {
-	char buffer[200];						// buffer to hold data received
+	// Validate we have a broadcast port and attempt to add the listener. 
+	if (mBroadcastPort <= 0 ||
+		mUdp->AddBroadcastListener(mBroadcastPort) < 0)
+	{
+		return -1;
+	}
+
+	uint8_t buffer[200];					// buffer to hold data received
 	int size = sizeof(buffer);				// size of the buffer
 	int start = mTimer->GetMSecTicks();		// time of start
 	int elapsed = 0;						// time elapsed count
 	bool packetReceived = false;			// Verify the packet is what we desire
 
+	// While the time length hasnt elapsed
 	while (elapsed <= mMaxTimeLengthInMSec)
 	{
 		int bytesReceived = mUdp->ReceiveBroadcastFromListenerPort(buffer, size, mBroadcastPort);
@@ -66,32 +96,49 @@ int UnitUpdater::ListenForInterrupt()
 		if (bytesReceived == -1)
 		{
 			std::cout << mUdp->GetLastError() << std::endl;
-			break;
+			return -1;
 		}
 		else if (bytesReceived > 0)
 		{
-			// @todo - check for packet here. 
-			if (buffer[0] == SYNC1 &&
-				buffer[1] == SYNC2 &&
-				buffer[2] == SYNC3 &&
-				buffer[3] == SYNC4 &&
-				buffer[5] == sizeof(UPDATER_BOOT_INTERRUPT_MESSAGE)
-				)
+			if (bytesReceived >= sizeof(UPDATER_BOOT_INTERRUPT_MESSAGE))
 			{
-				packetReceived = true;
-			}
-
-			// handle packet reception
-			if (packetReceived)
-			{
-				// @todo handle reception
+				if (IsPacketValid(buffer))
+				{
+					std::string ip;
+					int port;
+					mUdp->GetLastSendersInfo(ip, port);				// Get the senders info
+					SendAcknowledgement(ip, port, MSG_TYPE::BOOT);	// Respond to sender with ack
+					return 1;										// return success
+				}
 			}
 		}
 
 		elapsed = mTimer->GetMSecTicks() - start;
 	}
 
+	// Default return
 	return 0;
+}
+
+bool UnitUpdater::IsPacketValid(uint8_t* buffer)
+{
+	if (buffer[0] == SYNC1 &&
+		buffer[1] == SYNC2 &&
+		buffer[2] == SYNC3 &&
+		buffer[3] == SYNC4 &&
+		buffer[4] == sizeof(UPDATER_BOOT_INTERRUPT_MESSAGE) &&
+		buffer[5] == BOOT_INTERRUPT
+		)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+int UnitUpdater::SendAcknowledgement(const std::string ip, const int port, const MSG_TYPE type)
+{
+	return -1;
 }
 
 void UnitUpdater::Close()

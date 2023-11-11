@@ -666,7 +666,9 @@ namespace Essentials
 								return 0;
 							}
 
-							mLastRecvBroadcastPort = ntohs(addr.sin_port);
+							mLastReceiveInfo->ipAddress = inet_ntoa(recvFrom.sin_addr);
+							mLastReceiveInfo->port = ntohs(addr.sin_port);
+							mLastRecvBroadcastPort = mLastReceiveInfo->port;
 							return receivedBytes;
 						}
 
@@ -917,6 +919,12 @@ namespace Essentials
 		int16_t UDP_Client::GetPortOfLastReceive()
 		{
 			return mLastReceiveInfo->port;
+		}
+
+		void UDP_Client::GetLastSendersInfo(std::string& ip, int& port)
+		{
+			ip = mLastReceiveInfo->ipAddress;
+			port = mLastReceiveInfo->port;
 		}
 
 		std::string UDP_Client::GetLastError()

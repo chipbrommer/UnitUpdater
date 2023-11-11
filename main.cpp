@@ -18,20 +18,21 @@ int main()
 		std::cout << "Failed to start!\n";
 	}
 
-	bool broadcastReceived = false;
+	bool interruptReceived = false;
 
 	if (uu.ListenForInterrupt())
 	{
-		broadcastReceived = true;
+		interruptReceived = true;
 	}
 
-	if (broadcastReceived)
+	if (interruptReceived)
 	{
 		// handle tcp stuffs and listen for transactions. 
 	}
 	else
 	{
-		std::cout << "NOTICE: Broadcast not found!\n";
+		std::cout << "\nNOTICE: Broadcast not found!\n";
+		std::cout << "NOTICE: Starting OFS!\n" << std::endl;
 	}
 
 	// Close after timeout
