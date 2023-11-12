@@ -29,7 +29,7 @@ int UnitUpdater::Setup(int bPort, int tPort)
 	return 0;
 }
 
-void UnitUpdater::SetMaxListeningTime(int msecTimeout)
+void UnitUpdater::SetMaxBroadcastListeningTime(int msecTimeout)
 {
 	mMaxTimeLengthInMSec = msecTimeout;
 }
@@ -73,6 +73,11 @@ int UnitUpdater::Start()
 	mTcp->Stop();
 }
 
+int UnitUpdater::HandleMessage()
+{
+	return -1;
+}
+
 int UnitUpdater::ListenForInterrupt()
 {
 	// Validate we have a broadcast port and attempt to add the listener. 
@@ -89,7 +94,7 @@ int UnitUpdater::ListenForInterrupt()
 	bool packetReceived = false;			// Verify the packet is what we desire
 
 	// While the time length hasnt elapsed
-	while (true/*elapsed <= mMaxTimeLengthInMSec*/)
+	while (elapsed <= mMaxTimeLengthInMSec)
 	{
 		int bytesReceived = mUdp->ReceiveBroadcastFromListenerPort(buffer, size, mBroadcastPort);
 
@@ -116,7 +121,7 @@ int UnitUpdater::ListenForInterrupt()
 						return -1;
 					}// Respond to sender with ack
 					std::cout << "Ack sent to " + ip + ":" +std::to_string(port) + "\n";
-					return 1;										// return success
+					return 1;									
 				}
 			}
 		}
