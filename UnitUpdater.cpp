@@ -89,7 +89,7 @@ int UnitUpdater::ListenForInterrupt()
 	bool packetReceived = false;			// Verify the packet is what we desire
 
 	// While the time length hasnt elapsed
-	while (elapsed <= mMaxTimeLengthInMSec)
+	while (true/*elapsed <= mMaxTimeLengthInMSec*/)
 	{
 		int bytesReceived = mUdp->ReceiveBroadcastFromListenerPort(buffer, size, mBroadcastPort);
 
@@ -107,7 +107,11 @@ int UnitUpdater::ListenForInterrupt()
 					std::string ip;
 					int port;
 					mUdp->GetLastSendersInfo(ip, port);				// Get the senders info
-					SendAcknowledgement(ip, port, MSG_TYPE::BOOT);	// Respond to sender with ack
+					if (SendAcknowledgement(ip, port, MSG_TYPE::BOOT) < 0)
+					{
+						std::cout << "Failed to send response";
+						return -1;
+					}// Respond to sender with ack
 					return 1;										// return success
 				}
 			}
@@ -126,19 +130,31 @@ bool UnitUpdater::IsPacketValid(uint8_t* buffer)
 		buffer[1] == SYNC2 &&
 		buffer[2] == SYNC3 &&
 		buffer[3] == SYNC4 &&
-		buffer[4] == sizeof(UPDATER_BOOT_INTERRUPT_MESSAGE) &&
-		buffer[5] == BOOT_INTERRUPT
+		buffer[4] == sizeof(UPDATER_BOOT_INTERRUPT_MESSAGE)
 		)
 	{
-		return true;
+		UPDATER_BOOT_INTERRUPT_MESSAGE msg = {0};
+		memcpy(&msg, buffer, sizeof(msg));
+		if (msg.command == BOOT_INTERRUPT)
+		{
+			return true;
+		}
 	}
-
 	return false;
 }
 
 int UnitUpdater::SendAcknowledgement(const std::string ip, const int port, const MSG_TYPE type)
 {
-	return -1;
+	int rtn = -1;
+	switch (type)
+	{
+	case MSG_TYPE::BOOT:
+	{
+		UPDATER_BOOT_INTERRUPT_MESSAGE msg = { SYNC1, SYNC2, SYNC3, SYNC4, sizeof(UPDATER_BOOT_INTERRUPT_MESSAGE), ACKNOWLEDGE, 0};
+		rtn = mUdp->SendUnicast(reinterpret_cast<char*>(&msg), sizeof(msg), ip, port);
+	}
+	}
+	return rtn;
 }
 
 void UnitUpdater::Close()

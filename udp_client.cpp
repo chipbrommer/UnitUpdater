@@ -756,7 +756,9 @@ namespace Essentials
 								return 0;
 							}
 
-							mLastRecvBroadcastPort = ntohs(addr.sin_port);
+							mLastReceiveInfo->ipAddress = inet_ntoa(recvFrom.sin_addr);
+							mLastReceiveInfo->port = ntohs(addr.sin_port);
+							mLastRecvBroadcastPort = mLastReceiveInfo->port;
 							return receivedBytes;
 						}
 

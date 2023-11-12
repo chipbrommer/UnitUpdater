@@ -2,8 +2,9 @@
 
 int main()
 {
-	std::cout << "Hello CMake." << std::endl;
-
+	std::cout << "------------------------------------\n";
+	std::cout << "-           Unit Updater           -\n";
+	std::cout << "------------------------------------\n" << std::endl;
 	// Todo - add settings file instance, 
 	// Load settings file. 
 
@@ -11,12 +12,8 @@ int main()
 
 	UnitUpdater uu;
 	uu.Setup(8000, 8005);
-	int start = uu.Start();
 
-	if (start < 0)
-	{
-		std::cout << "Failed to start!\n";
-	}
+	std::cout << "Listening for Broadcast!\n";
 
 	bool interruptReceived = false;
 
@@ -28,11 +25,12 @@ int main()
 	if (interruptReceived)
 	{
 		// handle tcp stuffs and listen for transactions. 
+		std::cout << "\nHELLO: Broadcast found!\n";
 	}
 	else
 	{
-		std::cout << "\nNOTICE: Broadcast not found!\n";
-		std::cout << "NOTICE: Starting OFS!\n" << std::endl;
+		std::cout << "\nNOTICE: \tBroadcast not found!\n";
+		std::cout << "\t\tStarting OFS!\n" << std::endl;
 	}
 
 	// Close after timeout

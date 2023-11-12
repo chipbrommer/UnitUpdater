@@ -13,12 +13,14 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#pragma pack(push, 1)
+
 constexpr uint8_t   SYNC1 = 0x1A;
 constexpr uint8_t   SYNC2 = 0xBA;
 constexpr uint8_t   SYNC3 = 0xF1;
 constexpr uint8_t   SYNC4 = 0xD5;
-constexpr uint16_t  BOOT_INTERRUPT  = 0x8A75;
-constexpr uint16_t  ACKNOWLEDGE     = 0x6F3B;
+constexpr uint16_t  BOOT_INTERRUPT  = 0x12AB;
+constexpr uint16_t  ACKNOWLEDGE     = 0xBA21;
 
 enum ACTION_COMMAND : unsigned int
 {
@@ -62,3 +64,5 @@ struct UPDATER_ACTION_ACK
     uint16_t        ack;
     UPDATER_FOOTER  footer;
 };
+
+#pragma pack(pop)
