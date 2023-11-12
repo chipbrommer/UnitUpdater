@@ -19,14 +19,17 @@ constexpr uint8_t   SYNC1 = 0x1A;
 constexpr uint8_t   SYNC2 = 0xBA;
 constexpr uint8_t   SYNC3 = 0xF1;
 constexpr uint8_t   SYNC4 = 0xD5;
-constexpr uint16_t  BOOT_INTERRUPT  = 0x12AB;
 constexpr uint16_t  ACKNOWLEDGE     = 0xBA21;
 
 enum ACTION_COMMAND : unsigned int
 {
-    UPDATE_OFS          = 0xD2C3B4A5,
-    UPDATE_CONFIG       = 0xD2C3B4A6,
-    GET_LAST_FLIGHT_LOG = 0xE1D3C5B7,
+    BOOT_INTERRUPT      = 0xB3C3B4A1,
+    UPDATE_OFS          = 0xD2C3B4A2,
+    UPDATE_CONFIG       = 0xD2C3B4A3,
+    GET_LOG_NAMES       = 0xC1C3B4A4,
+    GET_SPECIFIC_LOG    = 0xC1C3B4A5,
+    GET_LAST_FLIGHT_LOG = 0xC1C3B4A6,
+    CLOSE               = 0xA1C3B4A7,
 };
 
 struct UPDATER_HEADER
@@ -41,13 +44,6 @@ struct UPDATER_HEADER
 struct UPDATER_FOOTER
 {
     uint8_t         checksum;
-};
-
-struct UPDATER_BOOT_INTERRUPT_MESSAGE
-{
-    UPDATER_HEADER  header;
-    uint16_t        command;
-    UPDATER_FOOTER  footer;
 };
 
 struct UPDATER_ACTION_MESSAGE

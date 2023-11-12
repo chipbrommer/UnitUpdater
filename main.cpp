@@ -8,7 +8,7 @@ int main()
 	// Todo - add settings file instance, 
 	// Load settings file. 
 
-	// Pass files into UnitUpdater
+	// Pass ports, and file locations into UnitUpdater
 
 	UnitUpdater uu;
 	uu.Setup(8000, 8005);
@@ -24,8 +24,7 @@ int main()
 
 	if (interruptReceived)
 	{
-		// handle tcp stuffs and listen for transactions. 
-		std::cout << "\nHELLO: Broadcast found!\n";
+		uu.StartServer();
 	}
 	else
 	{

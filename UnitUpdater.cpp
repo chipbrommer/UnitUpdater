@@ -39,7 +39,7 @@ UnitUpdater::~UnitUpdater()
 	Close();
 }
 
-int UnitUpdater::Start()
+int UnitUpdater::StartServer()
 {
 	if (mServerPort == 0)
 	{
@@ -51,10 +51,10 @@ int UnitUpdater::Start()
 	{
 		std::cerr << "Failed to start the server." << std::endl;
 		std::cout << mTcp->GetLastError();
-		return 1;
+		return -1;
 	}
 
-	for (;;)
+	while(!mCloseRequested)
 	{
 		//// Listen for incoming connections and handle message requests
 		//int32_t clientSocket = mTcp->Accept(); 
@@ -71,6 +71,7 @@ int UnitUpdater::Start()
 	}
 
 	mTcp->Stop();
+	return 0;
 }
 
 int UnitUpdater::HandleMessage()
@@ -105,7 +106,7 @@ int UnitUpdater::ListenForInterrupt()
 		}
 		else if (bytesReceived > 0)
 		{
-			if (bytesReceived >= sizeof(UPDATER_BOOT_INTERRUPT_MESSAGE))
+			if (bytesReceived >= sizeof(UPDATER_ACTION_MESSAGE))
 			{
 				if (IsPacketValid(buffer))
 				{
@@ -114,7 +115,7 @@ int UnitUpdater::ListenForInterrupt()
 					mUdp->GetLastSendersInfo(ip, port);				// Get the senders info
 					mUdp->ConfigureThisClient("", 8080);
 					mUdp->OpenUnicast();
-					int rtn = SendAcknowledgement("127.0.0.1", 8080, MSG_TYPE::BOOT);
+					int rtn = SendAcknowledgement("127.0.0.1", 8080, MSG_TYPE::BOOT_INTERRUPT);
 					if (rtn < 0)
 					{
 						std::cout << "Failed to send response";
@@ -139,13 +140,22 @@ bool UnitUpdater::IsPacketValid(uint8_t* buffer)
 		buffer[1] == SYNC2 &&
 		buffer[2] == SYNC3 &&
 		buffer[3] == SYNC4 &&
-		buffer[4] == sizeof(UPDATER_BOOT_INTERRUPT_MESSAGE)
+		buffer[4] == sizeof(UPDATER_ACTION_MESSAGE)
 		)
 	{
-		UPDATER_BOOT_INTERRUPT_MESSAGE msg = {0};
+		UPDATER_ACTION_MESSAGE msg = {0};
 		memcpy(&msg, buffer, sizeof(msg));
-		if (msg.command == BOOT_INTERRUPT)
+
+		switch (msg.action)
 		{
+		case ACTION_COMMAND::CLOSE:
+			mCloseRequested = true;
+		case ACTION_COMMAND::BOOT_INTERRUPT:
+		case ACTION_COMMAND::UPDATE_OFS:
+		case ACTION_COMMAND::UPDATE_CONFIG:
+		case ACTION_COMMAND::GET_LOG_NAMES:
+		case ACTION_COMMAND::GET_SPECIFIC_LOG:
+		case ACTION_COMMAND::GET_LAST_FLIGHT_LOG:
 			return true;
 		}
 	}
@@ -155,14 +165,21 @@ bool UnitUpdater::IsPacketValid(uint8_t* buffer)
 int UnitUpdater::SendAcknowledgement(const std::string ip, const int port, const MSG_TYPE type)
 {
 	int rtn = -1;
+	UPDATER_ACTION_ACK msg = { SYNC1, SYNC2, SYNC3, SYNC4, sizeof(UPDATER_ACTION_MESSAGE), 0, ACKNOWLEDGE, 0 };
+
 	switch (type)
 	{
-	case MSG_TYPE::BOOT:
-	{
-		UPDATER_BOOT_INTERRUPT_MESSAGE msg = { SYNC1, SYNC2, SYNC3, SYNC4, sizeof(UPDATER_BOOT_INTERRUPT_MESSAGE), ACKNOWLEDGE, 0};
+	case MSG_TYPE::BOOT_INTERRUPT:
+		msg.action = BOOT_INTERRUPT;
 		rtn = mUdp->SendUnicast(reinterpret_cast<char*>(&msg), sizeof(msg), ip, port);
+		break;
+	case MSG_TYPE::UPDATE_OFS:				break;
+	case MSG_TYPE::UPDATE_CONFIG:			break;
+	case MSG_TYPE::GET_LOG_NAMES:			break;
+	case MSG_TYPE::GET_SPECIFIC_LOG:		break;
+	case MSG_TYPE::GET_LAST_FLIGHT_LOG:		break;
 	}
-	}
+
 	return rtn;
 }
 

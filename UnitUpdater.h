@@ -10,11 +10,12 @@ constexpr int DEFAULT_TIMELENGTH_MSEC = 1000;
 
 enum class MSG_TYPE
 {
-    BOOT, 
+    BOOT_INTERRUPT, 
     UPDATE_OFS,
     UPDATE_CONFIG,
     GET_LOG_NAMES,
     GET_SPECIFIC_LOG,
+    GET_LAST_FLIGHT_LOG,
 };
 
 class UnitUpdater
@@ -23,21 +24,23 @@ public:
     UnitUpdater();
     UnitUpdater(int bPort, int tPort);
     ~UnitUpdater();
-    int Setup(int bPort, int tPort);
-    void SetMaxBroadcastListeningTime(int mSecTimeout);
-    int Start();
-    int HandleMessage();
-    int ListenForInterrupt();
-    void Close();
+    int     Setup(int bPort, int tPort);
+    void    SetMaxBroadcastListeningTime(int mSecTimeout);
+    int     StartServer();
+    int     HandleMessage();
+    int     ListenForInterrupt();
+    void    Close();
 protected:
 private:
-    bool IsPacketValid(uint8_t* buffer);
-    int SendAcknowledgement(const std::string ip, const int port, const MSG_TYPE type);
+    bool    IsPacketValid(uint8_t* buffer);
+    int     SendAcknowledgement(const std::string ip, const int port, const MSG_TYPE type);
 
-    int mLastError;
-    int mMaxTimeLengthInMSec;
-    int mBroadcastPort;
-    int mServerPort;
+    int     mLastError;
+    int     mMaxTimeLengthInMSec;
+    int     mBroadcastPort;
+    int     mServerPort;
+    bool    mCloseRequested;
+
     Essentials::Communications::UDP_Client* mUdp;
     Essentials::Communications::TCP_Server* mTcp;
     Essentials::Utilities::Timer*           mTimer;
