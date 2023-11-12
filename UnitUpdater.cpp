@@ -3,13 +3,14 @@
 
 UnitUpdater::UnitUpdater() 
 {
-    mBroadcastPort = 0;
-    mServerPort = 0;
-	mMaxTimeLengthInMSec = DEFAULT_TIMELENGTH_MSEC;
+	mLastError				= 0;
+	mMaxTimeLengthInMSec	= DEFAULT_TIMELENGTH_MSEC;
+    mBroadcastPort			= 0;
+    mServerPort				= 0;
+	mCloseRequested			= false;
 	mUdp = new Essentials::Communications::UDP_Client();
     mTcp = new Essentials::Communications::TCP_Server();
 	mTimer = Essentials::Utilities::Timer::GetInstance();
-	std::cout << mTcp->TcpServerVersion;
 }
 
 UnitUpdater::UnitUpdater(int bPort, int tPort) : UnitUpdater()
