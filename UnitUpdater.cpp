@@ -107,11 +107,15 @@ int UnitUpdater::ListenForInterrupt()
 					std::string ip;
 					int port;
 					mUdp->GetLastSendersInfo(ip, port);				// Get the senders info
-					if (SendAcknowledgement(ip, port, MSG_TYPE::BOOT) < 0)
+					mUdp->ConfigureThisClient("", 8080);
+					mUdp->OpenUnicast();
+					int rtn = SendAcknowledgement("127.0.0.1", 8080, MSG_TYPE::BOOT);
+					if (rtn < 0)
 					{
 						std::cout << "Failed to send response";
 						return -1;
 					}// Respond to sender with ack
+					std::cout << "Ack sent to " + ip + ":" +std::to_string(port) + "\n";
 					return 1;										// return success
 				}
 			}

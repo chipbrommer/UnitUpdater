@@ -79,12 +79,7 @@ namespace Essentials
 
 		int8_t UDP_Client::ConfigureThisClient(const std::string& address, const int16_t port)
 		{
-			if (ValidateIP(address) == -1)
-			{
-				mLastError = UdpClientError::BAD_ADDRESS;
-				return -1;
-			}
-
+			// Validate port number
 			if (ValidatePort(port) == false)
 			{
 				mLastError = UdpClientError::BAD_PORT;
@@ -93,13 +88,27 @@ namespace Essentials
 
 			// Setup mClientAddr
 			memset(reinterpret_cast<char*>(&mClientAddr), 0, sizeof(mClientAddr));
+
+			// if user passed in an address, verify its not empty and attempt to set it to the client. 
+			// else it will use IPADDR_ANY
+			if (!address.empty())
+			{
+				if (ValidateIP(address) == -1)
+				{
+					mLastError = UdpClientError::BAD_ADDRESS;
+					return -1;
+				}
+
+				if (inet_pton(AF_INET, address.c_str(), &(mClientAddr.sin_addr)) <= 0)
+				{
+					mLastError = UdpClientError::CONFIGURATION_FAILED;
+					return -1;
+				}
+			}
+
 			mClientAddr.sin_family = AF_INET;
 			mClientAddr.sin_port = htons(port);
-			if (inet_pton(AF_INET, address.c_str(), &(mClientAddr.sin_addr)) <= 0)
-			{
-				mLastError = UdpClientError::CONFIGURATION_FAILED;
-				return -1;
-			}
+			mClientAddr.sin_addr.s_addr = INADDR_ANY;
 
 			return 0;
 		}
