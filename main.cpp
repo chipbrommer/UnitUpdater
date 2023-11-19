@@ -22,14 +22,14 @@ int main()
 		interruptReceived = true;
 	}
 
-	if (interruptReceived)
-	{
-		uu.StartServer();
-	}
-	else
+	if (!interruptReceived)
 	{
 		std::cout << "\nNOTICE: \tBroadcast not found!\n";
 		std::cout << "\t\tStarting OFS!\n" << std::endl;
+	}
+	else
+	{
+		uu.StartServer();
 	}
 
 	// Close after timeout
