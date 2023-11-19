@@ -290,25 +290,21 @@ namespace Essentials
 				std::cerr << "Error receiving data from client " << clientIP << std::endl;
 			}
 
-#ifdef WIN32
-			closesocket(clientSocket);
-#else
-			close(clientSocket);
-#endif
+			CloseClientSocket(clientSocket);
 		}
 
 		// Function to send a shutdown message to all connected clients
-		//void TCP_Server::SendShutdownMessageToAllClients()
-		//{
-		//	const char* shutdownMessage = "SERVER_SHUTDOWN";
+		void TCP_Server::SendShutdownMessageToAllClients()
+		{
+			const char* shutdownMessage = "SERVER_SHUTDOWN";
 
-		//	for (auto& clientThread : mClientThreads)
-		//	{
-		//		// Assuming each client thread is associated with a client object that has a socket member
-		//		int32_t clientSocket = /* extract client socket from the associated client object */;
-		//		send(clientSocket, shutdownMessage, strlen(shutdownMessage), 0);
-		//	}
-		//}
+			for (auto& clientThread : mClientThreads)
+			{
+				// Assuming each client thread is associated with a client object that has a socket member
+				int32_t clientSocket = /* extract client socket from the associated client object */;
+				send(clientSocket, shutdownMessage, strlen(shutdownMessage), 0);
+			}
+		}
 
 		//// Function to close all client sockets
 		//void TCP_Server::CloseAllClientSockets()
