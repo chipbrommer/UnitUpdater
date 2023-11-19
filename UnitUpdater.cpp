@@ -18,6 +18,11 @@ UnitUpdater::UnitUpdater(int bPort, int tPort) : UnitUpdater()
 	Setup(bPort, tPort);
 }
 
+UnitUpdater::~UnitUpdater()
+{
+	Close();
+}
+
 int UnitUpdater::Setup(int bPort, int tPort)
 {
 	mBroadcastPort = bPort;
@@ -33,11 +38,6 @@ int UnitUpdater::Setup(int bPort, int tPort)
 void UnitUpdater::SetMaxBroadcastListeningTime(int msecTimeout)
 {
 	mMaxTimeLengthInMSec = msecTimeout;
-}
-
-UnitUpdater::~UnitUpdater() 
-{
-	Close();
 }
 
 int UnitUpdater::StartServer()
@@ -149,9 +149,9 @@ bool UnitUpdater::IsPacketValid(uint8_t* buffer)
 
 		switch (msg.action)
 		{
-		case ACTION_COMMAND::CLOSE:
-			mCloseRequested = true;
+		case ACTION_COMMAND::CLOSE: mCloseRequested = true; break;
 		case ACTION_COMMAND::BOOT_INTERRUPT:
+		case ACTION_COMMAND::GET_AS_BUILT:
 		case ACTION_COMMAND::UPDATE_OFS:
 		case ACTION_COMMAND::UPDATE_CONFIG:
 		case ACTION_COMMAND::GET_LOG_NAMES:

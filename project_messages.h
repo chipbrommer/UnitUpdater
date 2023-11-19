@@ -24,12 +24,13 @@ constexpr uint16_t  ACKNOWLEDGE     = 0xBA21;
 enum ACTION_COMMAND : unsigned int
 {
     BOOT_INTERRUPT      = 0xB3C3B4A1,
-    UPDATE_OFS          = 0xD2C3B4A2,
-    UPDATE_CONFIG       = 0xD2C3B4A3,
-    GET_LOG_NAMES       = 0xC1C3B4A4,
-    GET_SPECIFIC_LOG    = 0xC1C3B4A5,
-    GET_LAST_FLIGHT_LOG = 0xC1C3B4A6,
-    CLOSE               = 0xA1C3B4A7,
+    GET_AS_BUILT        = 0xB4C3B4A2,
+    UPDATE_OFS          = 0xD2C3B4A3,
+    UPDATE_CONFIG       = 0xD3C3B4A4,
+    GET_LOG_NAMES       = 0xC1C3B4A5,
+    GET_SPECIFIC_LOG    = 0xC2C3B4A6,
+    GET_LAST_FLIGHT_LOG = 0xC3C3B4A7,
+    CLOSE               = 0xA4C3B4A8,
 };
 
 struct UPDATER_HEADER

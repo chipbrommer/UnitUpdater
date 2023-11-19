@@ -11,6 +11,7 @@ constexpr int DEFAULT_TIMELENGTH_MSEC = 1000;
 enum class MSG_TYPE
 {
     BOOT_INTERRUPT, 
+    GET_AS_BUILT,
     UPDATE_OFS,
     UPDATE_CONFIG,
     GET_LOG_NAMES,
