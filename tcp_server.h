@@ -33,6 +33,7 @@ const int SD_BOTH = SHUT_RDWR;
 #include <atomic>						// Thread instance stop flag
 #include <vector>						// Client thread list 
 #include <iostream>						// Prints 
+#include <mutex>
 //
 //	Defines:
 //          name                        reason defined
@@ -46,6 +47,48 @@ namespace Essentials
 {
 	namespace Communications
 	{
+		struct ClientConnection
+		{
+			char		ip[INET_ADDRSTRLEN] = {};
+			int32_t		socket = 0;
+			std::thread	thread;
+			std::mutex	mutex;
+
+			// Constructor for initializing the ClientConnection
+			ClientConnection(int32_t sock, const std::string& clientIP) : socket(sock), thread(), mutex() 
+			{
+				strncpy_s(ip, clientIP.c_str(), sizeof(ip) - 1);
+				ip[sizeof(ip) - 1] = '\0'; // Ensure null-termination
+			}
+
+			// Destructor to safely join the thread
+			~ClientConnection() 
+			{
+				if (thread.joinable()) { thread.join(); }
+			}
+
+			// Move constructor
+			ClientConnection(ClientConnection&& other) noexcept : socket(other.socket), thread(std::move(other.thread)), mutex() 
+			{
+				strncpy_s(ip, other.ip, sizeof(ip) - 1);
+				ip[sizeof(ip) - 1] = '\0';
+			}
+
+			// Move assignment operator
+			ClientConnection& operator=(ClientConnection&& other) noexcept 
+			{
+				if (this != &other) 
+				{
+					socket = other.socket;
+					thread = std::move(other.thread);
+					strncpy_s(ip, other.ip, sizeof(ip) - 1);
+					ip[sizeof(ip) - 1] = '\0';
+				}
+
+				return *this;
+			}
+		};
+
 		class TCP_Server
 		{
 		public:
@@ -131,9 +174,15 @@ namespace Essentials
 
 			int SendShutdownMessage(int32_t clientSocket);
 
-			void CloseClientSocket(int32_t clientSocket);
+			void SendShutdownMessageToAllClientSockets();
 
-			/// <summary>Cleans up a vector of client threads.</summary>
+			/// @brief 
+			void CloseClientSocket(int32_t clientSocket);
+			
+			/// @brief Close all client sockets in mClient vector
+			void CloseAllClientSockets();
+
+			/// @brief Clean up all thread in mClients vector
 			void CleanUpClientThreads();
 
 			std::string mTitle;					// Title of the class - used when using CPP_LOGGER
@@ -142,7 +191,7 @@ namespace Essentials
 			TcpServerError mLastError;			// Holds last error of the TCP server
 			std::thread mMonitorThread;			// Holds the thread for the monitor. 
 			std::atomic<bool> mStopFlag;		// Stop flag for the server. 
-			std::vector<std::thread> mClientThreads;  // A vector of threads, each an individual connection to a single client.
+			std::vector<ClientConnection> mClients;	
 
 #ifdef WIN32
 			WSADATA mWsaData;

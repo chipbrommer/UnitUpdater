@@ -675,7 +675,9 @@ namespace Essentials
 								return 0;
 							}
 
-							mLastReceiveInfo->ipAddress = inet_ntoa(recvFrom.sin_addr);
+							char ip[INET_ADDRSTRLEN];
+							inet_ntop(AF_INET, &(recvFrom.sin_addr), ip, INET_ADDRSTRLEN);
+							mLastReceiveInfo->ipAddress = std::string(ip);
 							mLastReceiveInfo->port = ntohs(addr.sin_port);
 							mLastRecvBroadcastPort = mLastReceiveInfo->port;
 							return receivedBytes;
@@ -765,7 +767,9 @@ namespace Essentials
 								return 0;
 							}
 
-							mLastReceiveInfo->ipAddress = inet_ntoa(recvFrom.sin_addr);
+							char ip[INET_ADDRSTRLEN];
+							inet_ntop(AF_INET, &(recvFrom.sin_addr), ip, INET_ADDRSTRLEN);
+							mLastReceiveInfo->ipAddress = std::string(ip);
 							mLastReceiveInfo->port = ntohs(addr.sin_port);
 							mLastRecvBroadcastPort = mLastReceiveInfo->port;
 							return receivedBytes;

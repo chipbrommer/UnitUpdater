@@ -177,12 +177,7 @@ namespace Essentials
 				mMonitorThread.join();
 			}
 
-			// Close all client sockets gracefully
-			for (auto& client : mClientThreads)
-			{
-				//SendShutdownMessage(client); // Implement this function to send a shutdown message
-				//CloseClientSocket(client);   // Implement this function to close the client socket
-			}
+			CloseAllClientSockets();
 
 #ifdef WIN32
 			closesocket(mSocket);
@@ -250,10 +245,21 @@ namespace Essentials
 				// Print notification
 				std::cout << "New client connected: " << clientIP << std::endl;
 
-				// Handle the client connection in a separate thread
-				std::thread clientThread(&TCP_Server::HandleClient, this, clientSocket, clientIP);
-				mClientThreads.push_back(std::move(clientThread));
+				try
+				{
+					// Create a new ClientConnection object directly in the mClients vector
+					mClients.emplace_back(ClientConnection(clientSocket, std::string(clientIP)));
+					auto& newClient = mClients.back(); // Get a reference to the newly added client
 
+					// Start the thread for handling the client connection
+					newClient.thread = std::thread(&TCP_Server::HandleClient, this, clientSocket, newClient.ip);
+				}
+				catch(const std::exception& e)
+				{
+					// Handle exception if failed to create ClientConnection and close the socket
+					std::cerr << "Error handling client connection: " << e.what() << std::endl;
+					CloseClientSocket(clientSocket);
+				}
 			}
 		}
 
@@ -262,91 +268,86 @@ namespace Essentials
 			char buffer[1024];
 			int bytesRead;
 
-			// Receive and process client messages
-			while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0) 
+			try
 			{
-				// Null-terminate the received data
-				buffer[bytesRead] = '\0';
-
-				// Display the received message
-				std::cout << "Received from client " << clientIP << ": " << buffer << std::endl;
-
-				// Echo back the message to the client
-				if (send(clientSocket, buffer, bytesRead, 0) == -1) 
+				// Receive and process client messages
+				while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0)
 				{
-					mLastError = TcpServerError::ECHO_FAILED;
-					break;
+					// Null-terminate the received data
+					buffer[bytesRead] = '\0';
+
+					// Display the received message
+					std::cout << "Received from client " << clientIP << ": " << buffer << std::endl;
+
+					// Echo back the message to the client
+					if (send(clientSocket, buffer, bytesRead, 0) == -1)
+					{
+						mLastError = TcpServerError::ECHO_FAILED;
+						break;
+					}
+				}
+
+				if (bytesRead == 0)
+				{
+					// Client disconnected
+					std::cout << "Client disconnected: " << clientIP << std::endl;
+				}
+				else if (bytesRead == -1)
+				{
+					// Error receiving data
+					std::cerr << "Error receiving data from client " << clientIP << std::endl;
 				}
 			}
-
-			if (bytesRead == 0) 
+			catch(const std::exception& e)
 			{
-				// Client disconnected
-				std::cout << "Client disconnected: " << clientIP << std::endl;
-			}
-			else if (bytesRead == -1) 
-			{
-				// Error receiving data
-				std::cerr << "Error receiving data from client " << clientIP << std::endl;
+				std::cerr << "Exception in handling client: " << e.what() << std::endl;
 			}
 
 			CloseClientSocket(clientSocket);
 		}
 
-		// Function to send a shutdown message to all connected clients
-		void TCP_Server::SendShutdownMessageToAllClients()
+		void TCP_Server::CloseAllClientSockets()
 		{
-			const char* shutdownMessage = "SERVER_SHUTDOWN";
-
-			for (auto& clientThread : mClientThreads)
+			for (auto& client : mClients)
 			{
-				// Assuming each client thread is associated with a client object that has a socket member
-				int32_t clientSocket = /* extract client socket from the associated client object */;
-				send(clientSocket, shutdownMessage, strlen(shutdownMessage), 0);
+				{
+					std::lock_guard<std::mutex> clientLock(client.mutex);
+					SendShutdownMessage(client.socket);
+					CloseClientSocket(client.socket);
+				}
 			}
+
+			// Clean up client threads
+			CleanUpClientThreads();
 		}
 
-		//// Function to close all client sockets
-		//void TCP_Server::CloseAllClientSockets()
-		//{
-		//	for (auto& clientThread : mClientThreads)
-		//	{
-		//		// Assuming each client thread is associated with a client object that has a socket member
-		//		int32_t clientSocket = /* extract client socket from the associated client object */;
-
-		//		// Close the client socket
-		//		CloseClientSocket(clientSocket);
-		//	}
-
-		//	// Clear the vector of client threads
-		//	mClientThreads.clear();
-		//}
-
-		// Function to send a shutdown message to the client
 		int TCP_Server::SendShutdownMessage(int32_t clientSocket)
 		{
 			const char* shutdownMessage = "SERVER_SHUTDOWN";
 			return send(clientSocket, shutdownMessage, strlen(shutdownMessage), 0);
 		}
 
-		// Function to close a client socket
-		void TCP_Server::CloseClientSocket(int32_t clientSocket)
+		void TCP_Server::CloseClientSocket(int32_t clientSocket) 
 		{
-#ifdef WIN32
+#ifdef _WIN32
+			shutdown(clientSocket, SD_BOTH);
 			closesocket(clientSocket);
 #else
+			shutdown(clientSocket, SHUT_RDWR);
 			close(clientSocket);
 #endif
 		}
 
 		void TCP_Server::CleanUpClientThreads()
 		{
-			for (auto it = mClientThreads.begin(); it != mClientThreads.end();) 
+			auto it = mClients.begin();
+			while (it != mClients.end()) 
 			{
-				if (it->joinable()) 
+				std::lock_guard<std::mutex> clientLock(it->mutex);
+				if (it->thread.joinable()) 
 				{
-					it->join();
-					it = mClientThreads.erase(it);
+					it->thread.join();
+					it = mClients.erase(it);
 				}
 				else 
 				{
@@ -354,5 +355,6 @@ namespace Essentials
 				}
 			}
 		}
+	
 	}
 }
