@@ -310,11 +310,9 @@ namespace Essentials
 		{
 			for (auto& client : mClients)
 			{
-				{
-					std::lock_guard<std::mutex> clientLock(client.mutex);
-					SendShutdownMessage(client.socket);
-					CloseClientSocket(client.socket);
-				}
+				std::lock_guard<std::mutex> clientLock(client.mutex);
+				SendShutdownMessage(client.socket);
+				CloseClientSocket(client.socket);
 			}
 
 			// Clean up client threads

@@ -10,7 +10,6 @@
 //          name                        reason included
 //          --------------------        ---------------------------------------
 #ifdef WIN32
-#include <stdint.h>						// Standard integer types
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 #else
@@ -26,6 +25,7 @@ const int SOCKET_ERROR = -1;
 const int SD_BOTH = SHUT_RDWR;
 #define closesocket(s) close(s)
 #endif
+#include <cstdint>						// Standard integer types
 #include <map>							// Error enum to strings.
 #include <string>						// Strings
 #include <regex>						// Regular expression for ip validation
@@ -50,9 +50,9 @@ namespace Essentials
 		struct ClientConnection
 		{
 			char		ip[INET_ADDRSTRLEN] = {};
-			int32_t		socket = 0;
-			std::thread	thread;
-			std::mutex	mutex;
+			std::int32_t	socket = 0;
+			std::thread		thread;
+			std::mutex		mutex;
 
 			// Constructor for initializing the ClientConnection
 			ClientConnection(int32_t sock, const std::string& clientIP) : socket(sock), thread(), mutex() 
@@ -174,9 +174,7 @@ namespace Essentials
 
 			int SendShutdownMessage(int32_t clientSocket);
 
-			void SendShutdownMessageToAllClientSockets();
-
-			/// @brief 
+			/// @brief Close a single client connection
 			void CloseClientSocket(int32_t clientSocket);
 			
 			/// @brief Close all client sockets in mClient vector

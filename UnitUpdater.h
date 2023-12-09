@@ -5,19 +5,9 @@
 #include "udp_client.h"
 #include "timer.h"
 #include "project_messages.h"
+#include "project_settings.h"
 
 constexpr int DEFAULT_TIMELENGTH_MSEC = 1000;
-
-enum class MSG_TYPE
-{
-    BOOT_INTERRUPT, 
-    GET_AS_BUILT,
-    UPDATE_OFS,
-    UPDATE_CONFIG,
-    GET_LOG_NAMES,
-    GET_SPECIFIC_LOG,
-    GET_LAST_FLIGHT_LOG,
-};
 
 class UnitUpdater
 {
@@ -25,7 +15,7 @@ public:
     UnitUpdater();
     UnitUpdater(int bPort, int tPort);
     ~UnitUpdater();
-    int     Setup(int bPort, int tPort);
+    int     Setup(std::string filepath, int preferredBroadcastPort = 0, int preferredCommsPort = 0);
     void    SetMaxBroadcastListeningTime(int mSecTimeout);
     int     StartServer();
     int     HandleMessage();
@@ -37,7 +27,7 @@ private:
     int     SendAcknowledgement(const std::string ip, const int port, const MSG_TYPE type);
 
     int     mLastError;
-    int     mMaxTimeLengthInMSec;
+    int     mMaxBroadcastListeningTimeInMSec;
     int     mBroadcastPort;
     int     mServerPort;
     bool    mCloseRequested;
@@ -45,4 +35,5 @@ private:
     Essentials::Communications::UDP_Client* mUdp;
     Essentials::Communications::TCP_Server* mTcp;
     Essentials::Utilities::Timer*           mTimer;
+    Settings                                mSettings;
 };

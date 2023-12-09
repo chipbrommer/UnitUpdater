@@ -21,6 +21,17 @@ constexpr uint8_t   SYNC3 = 0xF1;
 constexpr uint8_t   SYNC4 = 0xD5;
 constexpr uint16_t  ACKNOWLEDGE     = 0xBA21;
 
+enum class MSG_TYPE
+{
+    BOOT_INTERRUPT,
+    GET_AS_BUILT,
+    UPDATE_OFS,
+    UPDATE_CONFIG,
+    GET_LOG_NAMES,
+    GET_SPECIFIC_LOG,
+    GET_LAST_FLIGHT_LOG,
+};
+
 enum ACTION_COMMAND : unsigned int
 {
     BOOT_INTERRUPT      = 0xB3C3B4A1,

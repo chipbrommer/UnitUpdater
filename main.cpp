@@ -11,7 +11,7 @@ int main()
 	// Pass ports, and file locations into UnitUpdater
 
 	UnitUpdater uu;
-	uu.Setup(8000, 8005);
+	uu.Setup("filepath" ,8000, 8005);
 
 	std::cout << "Listening for Broadcast!\n";
 

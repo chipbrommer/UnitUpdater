@@ -4,18 +4,19 @@
 UnitUpdater::UnitUpdater() 
 {
 	mLastError				= 0;
-	mMaxTimeLengthInMSec	= DEFAULT_TIMELENGTH_MSEC;
+	mMaxBroadcastListeningTimeInMSec	= DEFAULT_TIMELENGTH_MSEC;
     mBroadcastPort			= 0;
     mServerPort				= 0;
 	mCloseRequested			= false;
-	mUdp = new Essentials::Communications::UDP_Client();
-    mTcp = new Essentials::Communications::TCP_Server();
-	mTimer = Essentials::Utilities::Timer::GetInstance();
+	mUdp					= new Essentials::Communications::UDP_Client();
+    mTcp					= new Essentials::Communications::TCP_Server();
+	mTimer					= Essentials::Utilities::Timer::GetInstance();
 }
 
 UnitUpdater::UnitUpdater(int bPort, int tPort) : UnitUpdater()
 {
-	Setup(bPort, tPort);
+	mBroadcastPort = bPort;
+	mServerPort = tPort;
 }
 
 UnitUpdater::~UnitUpdater()
@@ -23,13 +24,33 @@ UnitUpdater::~UnitUpdater()
 	Close();
 }
 
-int UnitUpdater::Setup(int bPort, int tPort)
+int UnitUpdater::Setup(std::string filepath, int preferredBroadcastPort, int preferredCommsPort)
 {
-	mBroadcastPort = bPort;
-	mServerPort = tPort;
+	// Attempt to load the settings from filepath.
+	std::ifstream settingsFile(filepath);
+	if (settingsFile.is_open())
+	{
+		nlohmann::json settingsJson;
+		settingsFile >> settingsJson;
+		settingsFile.close();
+		mSettings.LoadFromJson(settingsJson);
+
+		std::cout << "UnitUpdater: Settings Loaded Successfully";
+		mBroadcastPort = mSettings.broadcastPort;
+		mServerPort = mSettings.communicationPort;
+		mMaxBroadcastListeningTimeInMSec = mSettings.broadcastTimeoutMSec;
+	}
+	else
+	{
+		std::cout << "UnitUpdater: Failed to Load Settings";
+	}
+
+	// Use preferred ports if they're not 0
+	if (preferredBroadcastPort != 0) mBroadcastPort = preferredBroadcastPort;
+	if (preferredCommsPort != 0) mServerPort = preferredCommsPort;
 
 	// Setup TCP to serve on any network interface on the desired port
-	mTcp->Configure("0.0.0.0",mServerPort);
+	mTcp->Configure("0.0.0.0", mServerPort);
 
 	// Default return
 	return 0;
@@ -37,7 +58,7 @@ int UnitUpdater::Setup(int bPort, int tPort)
 
 void UnitUpdater::SetMaxBroadcastListeningTime(int msecTimeout)
 {
-	mMaxTimeLengthInMSec = msecTimeout;
+	mMaxBroadcastListeningTimeInMSec = msecTimeout;
 }
 
 int UnitUpdater::StartServer()
@@ -96,7 +117,7 @@ int UnitUpdater::ListenForInterrupt()
 	bool packetReceived = false;			// Verify the packet is what we desire
 
 	// While the time length hasnt elapsed
-	while (elapsed <= mMaxTimeLengthInMSec)
+	while (elapsed <= mMaxBroadcastListeningTimeInMSec)
 	{
 		int bytesReceived = mUdp->ReceiveBroadcastFromListenerPort(buffer, size, mBroadcastPort);
 
