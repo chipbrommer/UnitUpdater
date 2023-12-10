@@ -1,0 +1,9 @@
+{
+    "ofsLocation": "/path/to/ofs",
+    "asBuiltLocation": "/path/to/asBuilt",
+    "sdcardLocation": "/path/to/sdcard",
+    "broadcastTimeoutMSec": 2000,
+    "broadcastPort": 5800,
+    "communicationPort": 5801,
+    "maximumConnections": 5
+}

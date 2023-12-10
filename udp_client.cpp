@@ -19,7 +19,6 @@ namespace Essentials
 	{
 		UDP_Client::UDP_Client()
 		{
-			mTitle				= "UDP Client";
 			mLastError			= UdpClientError::NONE;
 			mDestinationAddr	= {};
 			mClientAddr			= {};

@@ -8,8 +8,8 @@ UnitUpdater::UnitUpdater()
     mBroadcastPort			= 0;
     mServerPort				= 0;
 	mCloseRequested			= false;
+	mUpdateInProgress		= false;
 	mUdp					= new Essentials::Communications::UDP_Client();
-    mTcp					= new Essentials::Communications::TCP_Server();
 	mTimer					= Essentials::Utilities::Timer::GetInstance();
 
 	// Welcome message
@@ -40,22 +40,34 @@ int UnitUpdater::Setup(std::string filepath, int preferredBroadcastPort, int pre
 		settingsFile.close();
 		mSettings.LoadFromJson(settingsJson);
 
-		std::cout << "UnitUpdater: Settings Loaded Successfully\n";
+		std::cout << "[UPDATER] Settings Loaded Successfully\n";
 		mBroadcastPort = mSettings.broadcastPort;
 		mServerPort = mSettings.communicationPort;
 		mMaxBroadcastListeningTimeInMSec = mSettings.broadcastTimeoutMSec;
 	}
 	else
 	{
-		std::cout << "UnitUpdater: Failed to Load Settings\n";
+		std::cout << "[UPDATER] Failed to Load Settings\n";
 	}
 
 	// Use preferred ports if they're not 0
 	if (preferredBroadcastPort != 0) mBroadcastPort = preferredBroadcastPort;
 	if (preferredCommsPort != 0) mServerPort = preferredCommsPort;
 
-	// Setup TCP to serve on any network interface on the desired port
-	mTcp->Configure("0.0.0.0", mServerPort);
+	// Setup TCP to serve on any network interface
+	mTcp = new Essentials::Communications::TCP_Server(mSettings.maximumConnections, "0.0.0.0", mServerPort);
+
+	if (mTcp == nullptr) 
+	{
+		std::cout << "[UPDATER] Failed to initialize TCP server\n";
+		return -1;
+	}
+
+	// Create a lambda function to pass HandleMessage as the message callback 
+	auto handleMessageCallback = [this](const int clientFd, const std::string& msg) {
+		return HandleMessage(clientFd, msg);
+	};
+	mTcp->SetMessageCallback(handleMessageCallback);
 
 	// Default return
 	return 0;
@@ -76,35 +88,21 @@ int UnitUpdater::StartServer()
 	// Start the tcp connection
 	if (mTcp->Start() < 0)
 	{
-		std::cerr << "Failed to start the server." << std::endl;
+		std::cerr << "[UPDATER] Failed to start the server." << std::endl;
 		std::cout << mTcp->GetLastError();
 		return -1;
 	}
 
 	while(!mCloseRequested)
 	{
-		if (mTcp->HasData())
-		{
-			std::string data;
-			int rtn = mTcp->Receive(data); // Receive data from TCP
-
-			// Process received data if it's an update action message
-			if (rtn > 0 && IsPacketValid(data)) 
-			{
-				HandleMessage(data);
-			}
-			else {
-				// Handle other message types or invalid messages
-				std::cerr << "Received an invalid message." << std::endl;
-			}
-		}
+		// server running
 	}
 
 	mTcp->Stop();
 	return 0;
 }
 
-int UnitUpdater::HandleMessage(std::string msg)
+int UnitUpdater::HandleMessage(const int clientFD, const std::string& msg)
 {
 	return -1;
 }
@@ -151,11 +149,11 @@ int UnitUpdater::ListenForInterrupt()
 					int rtn = SendAcknowledgement("127.0.0.1", 8080, MSG_TYPE::BOOT_INTERRUPT);
 					if (rtn < 0)
 					{
-						std::cout << "Failed to send response";
+						std::cout << "[UPDATER] Failed to send broadcast response";
 						return -1;
 					}
 
-					std::cout << "Ack sent to " + ip + ":" +std::to_string(port) + "\n";
+					std::cout << "[UPDATER] Broadcast Ack sent to " + ip + ":" +std::to_string(port) + "\n";
 					return 1;									
 				}
 			}

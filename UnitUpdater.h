@@ -18,7 +18,7 @@ public:
     int     Setup(std::string filepath, int preferredBroadcastPort = 0, int preferredCommsPort = 0);
     void    SetMaxBroadcastListeningTime(int mSecTimeout);
     int     StartServer();
-    int     HandleMessage(std::string msg);
+    int     HandleMessage(const int clientFD, const std::string& msg);
     int     ListenForInterrupt();
     void    Close();
 protected:
@@ -31,6 +31,7 @@ private:
     int     mBroadcastPort;
     int     mServerPort;
     bool    mCloseRequested;
+    bool    mUpdateInProgress;
 
     Essentials::Communications::UDP_Client* mUdp;
     Essentials::Communications::TCP_Server* mTcp;

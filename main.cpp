@@ -6,7 +6,7 @@ int main()
 	UnitUpdater uu;
 
 	// Setup
-	uu.Setup("C:\\Users\\cbrommer\\Desktop\\DesktopItems\\settings.json");
+	uu.Setup("\\test_files\\settings.json");
 
 	std::cout << "Listening for Broadcast!\n";
 

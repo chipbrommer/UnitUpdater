@@ -34,6 +34,7 @@ const int SD_BOTH = SHUT_RDWR;
 #include <vector>						// Client thread list 
 #include <iostream>						// Prints 
 #include <mutex>
+#include <functional>
 //
 //	Defines:
 //          name                        reason defined
@@ -58,13 +59,13 @@ namespace Essentials
 			std::mutex mutex;				// data safety mutex
 
 			// Default constructor
-			Client() : socket(-1), bytesReceived(0), bytesWritten(0), timeConnected(0) {}
+			Client() : ip(""), port(0), socket(-1), bytesReceived(0), bytesWritten(0), timeConnected(0) {}
 
 			// Constructor with parameters
-			Client(const std::string& _ip, const std::uint16_t _port, std::int32_t _socket, std::int32_t _bytesReceived,
-				std::int32_t _bytesWritten, std::int32_t _timeConnected)
-				: ip(_ip), port(_port), socket(_socket), bytesReceived(_bytesReceived),
-				bytesWritten(_bytesWritten), timeConnected(_timeConnected) {}
+			Client(const std::string& ip, const std::uint16_t port, std::int32_t socket, std::int32_t bytesReceived,
+				std::int32_t bytesWritten, std::int32_t timeConnected)
+				: ip(ip), port(port), socket(socket), bytesReceived(bytesReceived),
+				bytesWritten(bytesWritten), timeConnected(timeConnected) {}
 
 			// Copy constructor
 			Client(const Client& other)
@@ -163,10 +164,15 @@ namespace Essentials
 			/// @brief Default constructor
 			TCP_Server();
 
-			/// @brief Constructor with default parameters
+			/// @brief Constructor with max clients 
+			/// @param maxClients - in - Maximum number of clients the server should handle concurrently
+			TCP_Server(const int maxClients);
+
+			/// @brief Constructor with defaults 
+			/// @param maxClients - in - Maximum number of clients the server should handle concurrently
 			/// @param address - in - Address to serve the server on.
 			/// @param port - in - Port to serve the server on.
-			explicit TCP_Server(const std::string& address, const int port);
+			explicit TCP_Server(const int maxClients, const std::string& address, const int port);
 
 			/// @brief Default deconstructor
 			~TCP_Server();
@@ -181,12 +187,24 @@ namespace Essentials
 			/// @return 0 if successful, -1 if fails. Call Serial::GetLastError to find out more.
 			int Start();
 
-			/// @brief Stops the server if it is running and cleans up the monitor thread.
+			/// @brief Stops the server if it is running
 			void Stop();
 
 			/// @brief Get the last error in string format
 			/// @return The last error in a formatted string
 			std::string GetLastError();
+
+			/// @brief Set a function to be called when a new connection is established
+			/// @param handler - in - Function to be used as a callback for a new connection 
+			void SetConnectionCallback(const std::function<int(const int)>& handler);
+
+			/// @brief Set a function to be called when a new message is received from a client
+			/// @param handler - in - Function to be used as a callback for a new message 
+			void SetMessageCallback(const std::function<int(const int, const std::string&)>& handler);
+
+			/// @brief Set a function to be called when a client disconnects
+			/// @param handler - in - Function to be used as a callback for a client disconnect
+			void SetDisconnectCallback(const std::function<int(const int)>& handler);
 
 		protected:
 		private:
@@ -200,14 +218,6 @@ namespace Essentials
 			/// @return true = valid, false = invalid
 			bool ValidatePort(const int port);
 
-			/// @brief Starts a thread to monitor the TCP connection.
-			void Monitor();
-
-			/// @brief Handles a client connection to the server
-			/// @param clientSocket - in - socket descriptor for the client
-			/// @param clientIP - in - address of the client
-			void HandleClient(int32_t clientSocket, const std::string& clientIP);
-
 			/// @brief Sends server shutdown message to a client
 			int SendShutdownMessage(int32_t clientSocket);
 
@@ -217,24 +227,30 @@ namespace Essentials
 			/// @brief Close all client sockets in mClient vector
 			void CloseAllClientSockets();
 
-			/// @brief Clean up all thread in mClients vector
-			void CleanUpClientThreads();
-
-			std::string mTitle;					// Title of the class - used when using CPP_LOGGER
 			std::string mAddress;				// Address of the TCP server
 			int mPort;							// Port of the TCP server
+			int mMaxClients;					// Holds maximum number of allowed client connections
 			TcpServerError mLastError;			// Holds last error of the TCP server
-			std::thread mMonitorThread;			// Holds the thread for the monitor. 
 			std::atomic<bool> mStopFlag;		// Stop flag for the server. 
-			std::vector<Client> mClients;	
+			std::vector<Client> mClients;		// Vector of clients
+			SOCKET mSocket;						// Server socket
+			pollfd* mFDs;						// Pointer for an array of file descriptors
+
+			// callback function to be called when server gets a new connection
+			std::function<int(const int fd)> mNewConnectionHandler;
+
+			// callback function to be called when server receives a message
+			std::function<int(const int fd, const std::string& msg)> mMessageHandler;
+
+			// callback function to be called when client disconnects
+			std::function<int(const int fd)> mDisconnectHandler;						
 
 #ifdef WIN32
 			WSADATA mWsaData;
 #endif
-			SOCKET mSocket;
 		};
-	} // Communications
 
+	} // Communications
 } // Essentials
 
 #endif // TCP_SERVER

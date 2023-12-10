@@ -43,7 +43,7 @@ namespace Essentials
 			{ TcpServerError::RECEIVE_FAILED, std::string("Error Code " + std::to_string(static_cast<uint8_t>(TcpServerError::RECEIVE_FAILED)) + ": Receive from client failed.") }
 	};
 
-		TCP_Server::TCP_Server() : mTitle("TCP Server"), mAddress("\n"), mPort(-1), mLastError(TcpServerError::NONE)
+		TCP_Server::TCP_Server() : mMaxClients(FD_SETSIZE), mAddress("\n"), mPort(-1), mLastError(TcpServerError::NONE)
 #ifdef WIN32
 			, mWsaData(), mSocket(INVALID_SOCKET)
 #else
@@ -51,7 +51,15 @@ namespace Essentials
 #endif
 		{}
 
-		TCP_Server::TCP_Server(const std::string& address, const int port) : TCP_Server()
+		TCP_Server::TCP_Server(int maxClients) : mMaxClients(maxClients), mAddress("\n"), mPort(-1), mLastError(TcpServerError::NONE)
+#ifdef WIN32
+			, mWsaData(), mSocket(INVALID_SOCKET)
+#else
+			, mSocket(-1)
+#endif
+		{}
+
+		TCP_Server::TCP_Server(const int maxClients, const std::string& address, const int port) : TCP_Server(maxClients)
 		{
 			Configure(address, port);
 		}
@@ -84,6 +92,8 @@ namespace Essentials
 		TCP_Server::~TCP_Server()
 		{
 			Stop();
+
+			delete[] mFDs;
 		}
 
 		int TCP_Server::Start()
@@ -159,23 +169,14 @@ namespace Essentials
 				return -1;
 			}
 
-			// Start the monitor thread
 			mStopFlag = false;
-			mMonitorThread = std::thread(&TCP_Server::Monitor, this);
-
 			return 0;
 		}
 
 		void TCP_Server::Stop()
 		{
-			// Set the stop flag to true to terminate the monitor thread
+			// Set the stop flag
 			mStopFlag = true;
-
-			// Wait for the monitor thread to finish
-			if (mMonitorThread.joinable()) 
-			{
-				mMonitorThread.join();
-			}
 
 			CloseAllClientSockets();
 
@@ -187,12 +188,27 @@ namespace Essentials
 			close(mSocket);
 			mSocket = -1;
 #endif
-			std::cout << "Server stopped." << std::endl;
+			std::cout << "[SERVER] Stopped." << std::endl;
 		}
 
 		std::string TCP_Server::GetLastError()
 		{
 			return TcpServerErrorMap[mLastError];
+		}
+
+		void TCP_Server::SetConnectionCallback(const std::function<int(const int)>& handler)
+		{
+			mNewConnectionHandler = handler;
+		}
+
+		void TCP_Server::SetMessageCallback(const std::function<int(const int, const std::string&)>& handler)
+		{
+			mMessageHandler = handler;
+		}
+
+		void TCP_Server::SetDisconnectCallback(const std::function<int(const int)>& handler)
+		{
+			mDisconnectHandler = handler;
 		}
 
 		int TCP_Server::ValidateIP(const std::string& ip)
@@ -223,89 +239,6 @@ namespace Essentials
 			return (port > -1 && port < 99999);
 		}
 
-		void TCP_Server::Monitor()
-		{
-			while (!mStopFlag) 
-			{
-				sockaddr_in clientAddress{};
-				socklen_t clientAddressLength = sizeof(clientAddress);
-				int32_t clientSocket = accept(mSocket, (struct sockaddr*)&clientAddress, &clientAddressLength);
-
-				if (clientSocket == -1) 
-				{
-					std::cerr << "Error accepting new client: " << strerror(errno) << std::endl;
-					mLastError = TcpServerError::ACCEPT_FAILED;
-					continue;
-				}
-
-				// Convert client IP address to string
-				char clientIP[INET_ADDRSTRLEN];
-				inet_ntop(AF_INET, &(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
-
-				// Print notification
-				std::cout << "New client connected: " << clientIP << std::endl;
-
-				try
-				{
-					// Create a new Client object directly in the mClients vector
-					mClients.emplace_back(Client(clientSocket, std::string(clientIP)));
-					auto& newClient = mClients.back(); // Get a reference to the newly added client
-
-					// Start the thread for handling the client connection
-					newClient.thread = std::thread(&TCP_Server::HandleClient, this, clientSocket, newClient.ip);
-				}
-				catch(const std::exception& e)
-				{
-					// Handle exception if failed to create Client and close the socket
-					std::cerr << "Error handling client connection: " << e.what() << std::endl;
-					CloseClientSocket(clientSocket);
-				}
-			}
-		}
-
-		void TCP_Server::HandleClient(int32_t clientSocket, const std::string& clientIP)
-		{
-			char buffer[1024];
-			int bytesRead;
-
-			try
-			{
-				// Receive and process client messages
-				while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0)
-				{
-					// Null-terminate the received data
-					buffer[bytesRead] = '\0';
-
-					// Display the received message
-					std::cout << "Received from client " << clientIP << ": " << buffer << std::endl;
-
-					// Echo back the message to the client
-					if (send(clientSocket, buffer, bytesRead, 0) == -1)
-					{
-						mLastError = TcpServerError::ECHO_FAILED;
-						break;
-					}
-				}
-
-				if (bytesRead == 0)
-				{
-					// Client disconnected
-					std::cout << "Client disconnected: " << clientIP << std::endl;
-				}
-				else if (bytesRead == -1)
-				{
-					// Error receiving data
-					std::cerr << "Error receiving data from client " << clientIP << std::endl;
-				}
-			}
-			catch(const std::exception& e)
-			{
-				std::cerr << "Exception in handling client: " << e.what() << std::endl;
-			}
-
-			CloseClientSocket(clientSocket);
-		}
-
 		void TCP_Server::CloseAllClientSockets()
 		{
 			for (auto& client : mClients)
@@ -314,9 +247,6 @@ namespace Essentials
 				SendShutdownMessage(client.socket);
 				CloseClientSocket(client.socket);
 			}
-
-			// Clean up client threads
-			CleanUpClientThreads();
 		}
 
 		int TCP_Server::SendShutdownMessage(int32_t clientSocket)

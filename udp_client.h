@@ -323,7 +323,6 @@ namespace Essentials
 			bool ValidatePort(const int16_t port);
 
 			// Variables
-			std::string					mTitle;					// Title for this utility when using CPP_Logger
 			UdpClientError				mLastError;				// Last error for this utility
 			sockaddr_in					mDestinationAddr;		// Destination sockaddr
 			sockaddr_in					mClientAddr;			// This clients sockaddr
