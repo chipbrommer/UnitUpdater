@@ -48,6 +48,7 @@ int UnitUpdater::Setup(std::string filepath, int preferredBroadcastPort, int pre
 	else
 	{
 		std::cout << "[UPDATER] Failed to Load Settings\n";
+		return -1;
 	}
 
 	// Use preferred ports if they're not 0

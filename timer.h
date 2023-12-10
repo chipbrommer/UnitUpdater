@@ -86,7 +86,7 @@ namespace Essentials
 			void			Fatal(std::string msg);
 
 			//!< VARIABLES
-			bool			mInitialzied = false;		//!< Track if initialized
+			bool			mInitialized = false;		//!< Track if initialized
 			bool			mClosing = false;			//!< Track if closing.
 			uint32_t		mTickOffset;				//!< Timer offset from start up timer
 			bool			mTimerThreadReady;			//!< Thread flag

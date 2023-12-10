@@ -18,11 +18,11 @@ namespace Essentials
 	namespace Utilities
 	{
 		// Initialize static class variables.
-		Timer* Timer::mInstance = NULL;
+		Timer* Timer::mInstance = nullptr;
 
 		Timer* Timer::GetInstance()
 		{
-			if (mInstance == NULL)
+			if (mInstance == nullptr)
 			{
 				mInstance = new Timer;
 			}
@@ -32,10 +32,10 @@ namespace Essentials
 
 		void Timer::ReleaseInstance()
 		{
-			if (mInstance != NULL)
+			if (mInstance != nullptr)
 			{
 				delete mInstance;
-				mInstance = NULL;
+				mInstance = nullptr;
 			}
 		}
 
@@ -50,7 +50,7 @@ namespace Essentials
 			uint32_t now;
 			bool firstTime;
 
-			if (firstTime = !mInitialzied)
+			if (firstTime = !mInitialized)
 			{
 				Initialize();
 			}
@@ -93,7 +93,7 @@ namespace Essentials
 		uint32_t Timer::GetUSecTicks()
 		{
 			// Catch not initialized
-			if (!mInitialzied)
+			if (!mInitialized)
 			{
 				int time = GetMSecTicks();
 			}
@@ -139,18 +139,25 @@ namespace Essentials
 #else
 			AddEntry(LOG_INFO, mUser, "Closing.");
 #endif // USE_STDIO
+			if (mInitialized)
+			{
+				mInitialized = false;
+				mClosing = true;
 
-			mInitialzied = false;
-			mClosing = true;
-			mThread->join();
-			delete mThread;
+				if (mThread->joinable())
+				{
+					mThread->join();
+				}
+
+				delete mThread;
+			}
 		}
 
 		void Timer::Initialize()
 		{
 			this->mUser = "Timer";
 
-			if (mInitialzied)
+			if (mInitialized)
 			{
 				return;
 			}
@@ -181,7 +188,7 @@ namespace Essentials
 				MSecSleep(1);
 			}
 
-			mInitialzied = true;
+			mInitialized = true;
 
 #ifdef USE_STDIO
 			printf("Timer Initialization complete\n");

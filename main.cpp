@@ -6,14 +6,20 @@ int main()
 	UnitUpdater uu;
 
 	// Setup
-	uu.Setup("\\test_files\\settings.json");
+	// C:\\Users\\chipb\\source\\repos\\chipbrommer\\UnitUpdater
+	if (uu.Setup("C:\\Users\\chipb\\source\\repos\\chipbrommer\\UnitUpdater\\test_files\\settings.json") < 0)
+	{
+		std::cout << "Failed to setup Updater. Closing\n";
+		uu.Close();
+		return -1;
+	}
 
 	std::cout << "Listening for Broadcast!\n";
 
 	bool interruptReceived = false;
 
 	// Listen for boot interrupt. 
-	if (uu.ListenForInterrupt())
+	if (uu.ListenForInterrupt() == 1)
 	{
 		interruptReceived = true;
 	}
