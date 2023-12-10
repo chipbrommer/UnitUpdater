@@ -18,7 +18,7 @@ public:
     int     Setup(std::string filepath, int preferredBroadcastPort = 0, int preferredCommsPort = 0);
     void    SetMaxBroadcastListeningTime(int mSecTimeout);
     int     StartServer();
-    int     HandleMessage();
+    int     HandleMessage(std::string msg);
     int     ListenForInterrupt();
     void    Close();
 protected:

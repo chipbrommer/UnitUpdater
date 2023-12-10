@@ -35,14 +35,14 @@ int UnitUpdater::Setup(std::string filepath, int preferredBroadcastPort, int pre
 		settingsFile.close();
 		mSettings.LoadFromJson(settingsJson);
 
-		std::cout << "UnitUpdater: Settings Loaded Successfully";
+		std::cout << "UnitUpdater: Settings Loaded Successfully\n";
 		mBroadcastPort = mSettings.broadcastPort;
 		mServerPort = mSettings.communicationPort;
 		mMaxBroadcastListeningTimeInMSec = mSettings.broadcastTimeoutMSec;
 	}
 	else
 	{
-		std::cout << "UnitUpdater: Failed to Load Settings";
+		std::cout << "UnitUpdater: Failed to Load Settings\n";
 	}
 
 	// Use preferred ports if they're not 0
@@ -78,25 +78,28 @@ int UnitUpdater::StartServer()
 
 	while(!mCloseRequested)
 	{
-		//// Listen for incoming connections and handle message requests
-		//int32_t clientSocket = mTcp->Accept(); 
+		if (mTcp->HasData())
+		{
+			std::string data;
+			int rtn = mTcp->Receive(data); // Receive data from TCP
 
-		//if (clientSocket == -1)
-		//{
-		//	// Handle the error, log it, etc.
-		//	std::cerr << "Error accepting incoming connection." << std::endl;
-		//	continue;
-		//}
-
-		//// Handle the client connection in a separate thread or function
-		//HandleClient(clientSocket);
+			// Process received data if it's an update action message
+			if (rtn > 0 && IsPacketValid(data)) 
+			{
+				HandleMessage(data);
+			}
+			else {
+				// Handle other message types or invalid messages
+				std::cerr << "Received an invalid message." << std::endl;
+			}
+		}
 	}
 
 	mTcp->Stop();
 	return 0;
 }
 
-int UnitUpdater::HandleMessage()
+int UnitUpdater::HandleMessage(std::string msg)
 {
 	return -1;
 }
@@ -132,17 +135,21 @@ int UnitUpdater::ListenForInterrupt()
 			{
 				if (IsPacketValid(buffer))
 				{
+					// Get the senders info
 					std::string ip;
 					int port;
-					mUdp->GetLastSendersInfo(ip, port);				// Get the senders info
+					mUdp->GetLastSendersInfo(ip, port);
 					mUdp->ConfigureThisClient("", 8080);
 					mUdp->OpenUnicast();
+
+					// Respond to sender with ack
 					int rtn = SendAcknowledgement("127.0.0.1", 8080, MSG_TYPE::BOOT_INTERRUPT);
 					if (rtn < 0)
 					{
 						std::cout << "Failed to send response";
 						return -1;
-					}// Respond to sender with ack
+					}
+
 					std::cout << "Ack sent to " + ip + ":" +std::to_string(port) + "\n";
 					return 1;									
 				}
@@ -170,7 +177,7 @@ bool UnitUpdater::IsPacketValid(uint8_t* buffer)
 
 		switch (msg.action)
 		{
-		case ACTION_COMMAND::CLOSE: mCloseRequested = true; break;
+		case ACTION_COMMAND::CLOSE:					mCloseRequested = true; break;
 		case ACTION_COMMAND::BOOT_INTERRUPT:
 		case ACTION_COMMAND::GET_AS_BUILT:
 		case ACTION_COMMAND::UPDATE_OFS:

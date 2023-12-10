@@ -2,26 +2,28 @@
 
 int main()
 {
+	// Create unit updater instance
+	UnitUpdater uu;
+
+	// Welcome message
 	std::cout << "------------------------------------\n";
 	std::cout << "-           Unit Updater           -\n";
 	std::cout << "------------------------------------\n" << std::endl;
-	// Todo - add settings file instance, 
-	// Load settings file. 
 
-	// Pass ports, and file locations into UnitUpdater
-
-	UnitUpdater uu;
-	uu.Setup("filepath" ,8000, 8005);
+	// Setup
+	uu.Setup("C:\\Users\\cbrommer\\Desktop\\DesktopItems\\settings.json");
 
 	std::cout << "Listening for Broadcast!\n";
 
 	bool interruptReceived = false;
 
+	// Listen for boot interrupt. 
 	if (uu.ListenForInterrupt())
 	{
 		interruptReceived = true;
 	}
 
+	// If interrupt received, start the server for communication. else notify and close
 	if (!interruptReceived)
 	{
 		std::cout << "\nNOTICE: \tBroadcast not found!\n";
@@ -31,8 +33,6 @@ int main()
 	{
 		uu.StartServer();
 	}
-
-	// Close after timeout
 
 	// proper clean up
 	uu.Close();
