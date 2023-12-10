@@ -5,11 +5,6 @@ int main()
 	// Create unit updater instance
 	UnitUpdater uu;
 
-	// Welcome message
-	std::cout << "------------------------------------\n";
-	std::cout << "-           Unit Updater           -\n";
-	std::cout << "------------------------------------\n" << std::endl;
-
 	// Setup
 	uu.Setup("C:\\Users\\cbrommer\\Desktop\\DesktopItems\\settings.json");
 

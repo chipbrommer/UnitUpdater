@@ -38,8 +38,8 @@ const int SD_BOTH = SHUT_RDWR;
 //	Defines:
 //          name                        reason defined
 //          --------------------        ---------------------------------------
-#ifndef     CPP_TCP_SERVER				// Define the cpp tcp server class. 
-#define     CPP_TCP_SERVER
+#ifndef     TCP_SERVER					// Define the cpp tcp server class. 
+#define     TCP_SERVER
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -47,45 +47,81 @@ namespace Essentials
 {
 	namespace Communications
 	{
-		struct ClientConnection
+		struct Client
 		{
-			char		ip[INET_ADDRSTRLEN] = {};
-			std::int32_t	socket = 0;
-			std::thread		thread;
-			std::mutex		mutex;
+			std::string ip;					// ip address of the client
+			std::uint16_t port;				// port of the client
+			std::int32_t socket;			// socket of the client
+			std::int32_t bytesReceived;		// number of bytes received from the client
+			std::int32_t bytesWritten;		// number of bytes written to the client
+			std::int32_t timeConnected;		// the timestamp when the client was connected to the server
+			std::mutex mutex;				// data safety mutex
 
-			// Constructor for initializing the ClientConnection
-			ClientConnection(int32_t sock, const std::string& clientIP) : socket(sock), thread(), mutex() 
-			{
-				strncpy_s(ip, clientIP.c_str(), sizeof(ip) - 1);
-				ip[sizeof(ip) - 1] = '\0'; // Ensure null-termination
-			}
+			// Default constructor
+			Client() : socket(-1), bytesReceived(0), bytesWritten(0), timeConnected(0) {}
 
-			// Destructor to safely join the thread
-			~ClientConnection() 
-			{
-				if (thread.joinable()) { thread.join(); }
-			}
+			// Constructor with parameters
+			Client(const std::string& _ip, const std::uint16_t _port, std::int32_t _socket, std::int32_t _bytesReceived,
+				std::int32_t _bytesWritten, std::int32_t _timeConnected)
+				: ip(_ip), port(_port), socket(_socket), bytesReceived(_bytesReceived),
+				bytesWritten(_bytesWritten), timeConnected(_timeConnected) {}
 
-			// Move constructor
-			ClientConnection(ClientConnection&& other) noexcept : socket(other.socket), thread(std::move(other.thread)), mutex() 
-			{
-				strncpy_s(ip, other.ip, sizeof(ip) - 1);
-				ip[sizeof(ip) - 1] = '\0';
-			}
+			// Copy constructor
+			Client(const Client& other)
+				: ip(other.ip), port(other.port), socket(other.socket), bytesReceived(other.bytesReceived),
+				bytesWritten(other.bytesWritten), timeConnected(other.timeConnected) {}
 
-			// Move assignment operator
-			ClientConnection& operator=(ClientConnection&& other) noexcept 
+			// Assignment operator
+			Client& operator=(const Client& other) 
 			{
 				if (this != &other) 
 				{
-					socket = other.socket;
-					thread = std::move(other.thread);
-					strncpy_s(ip, other.ip, sizeof(ip) - 1);
-					ip[sizeof(ip) - 1] = '\0';
+					ip				= other.ip;
+					port			= other.port;
+					socket			= other.socket;
+					bytesReceived	= other.bytesReceived;
+					bytesWritten	= other.bytesWritten;
+					timeConnected	= other.timeConnected;
 				}
-
 				return *this;
+			}
+
+			// Move constructor
+			Client(Client&& other) noexcept
+				: ip(std::move(other.ip)), port(other.port), socket(other.socket), bytesReceived(other.bytesReceived),
+				bytesWritten(other.bytesWritten), timeConnected(other.timeConnected) {}
+
+			// Move assignment operator
+			Client& operator=(Client&& other) noexcept 
+			{
+				if (this != &other) 
+				{
+					// Copy the data over
+					ip					= std::move(other.ip);
+					port				= other.port;
+					socket				= other.socket;
+					bytesReceived		= other.bytesReceived;
+					bytesWritten		= other.bytesWritten;
+					timeConnected		= other.timeConnected;
+				}
+				return *this;
+			}
+
+			// Equality operator
+			bool operator==(const Client& other) const 
+			{
+				return	ip				== other.ip				&&
+						port			== other.port			&&
+						socket			== other.socket			&&
+						bytesReceived	== other.bytesReceived	&&
+						bytesWritten	== other.bytesWritten	&&
+						timeConnected	== other.timeConnected;
+			}
+
+			// Inequality operator
+			bool operator!=(const Client& other) const 
+			{
+				return !(*this == other);
 			}
 		};
 
@@ -99,7 +135,7 @@ namespace Essentials
 
 			static const std::string TcpServerVersion;
 
-			/// <summary>enum for error codes</summary>
+			/// @brief enum for error codes
 			enum class TcpServerError : uint8_t
 			{
 				NONE,
@@ -121,57 +157,58 @@ namespace Essentials
 				RECEIVE_FAILED,
 			};
 
-			/// <summary>Error enum to string map</summary>
+			/// @brief Error enum to string map
 			static std::map<TcpServerError, std::string> TcpServerErrorMap;
 
-			/// <summary>Default constructor</summary>
+			/// @brief Default constructor
 			TCP_Server();
 
-			/// <summary>Constructor with default parameters</summary>
-			/// <param name="address"></param>
-			/// <param name="port"></param>
+			/// @brief Constructor with default parameters
+			/// @param address - in - Address to serve the server on.
+			/// @param port - in - Port to serve the server on.
 			explicit TCP_Server(const std::string& address, const int port);
 
-			/// <summary>Default deconstructor</summary>
+			/// @brief Default deconstructor
 			~TCP_Server();
 
-			/// <summary>Configures the server to a desired address and port number</summary>
-			/// <param name="address"> -[in]- Address to serve the TCP server on.</param>
-			/// <param name="port"> -[in]- Port to serve the TCP server on.</param>
-			/// <returns>0 if successful, -1 if fails. Call Serial::GetLastError to find out more.</returns>
+			/// @brief Configures the server to a desired address and port number
+			/// @param address - in - Address to serve the server on.
+			/// @param port - in - Port to serve the server on.
+			/// @return 0 if successful, -1 if fails. Call Serial::GetLastError to find out more.
 			int Configure(const std::string& address, const int port);
 
-			/// <summary>Starts the TCP server.</summary>
-			/// <returns>0 if successful, -1 if fails. Call Serial::GetLastError to find out more.</returns>
+			/// @brief Starts the server.
+			/// @return 0 if successful, -1 if fails. Call Serial::GetLastError to find out more.
 			int Start();
 
-			/// <summary>Stops the TCP server if it is running and cleans up the monitor thread.</summary>
+			/// @brief Stops the server if it is running and cleans up the monitor thread.
 			void Stop();
 
-			/// <summary>Get the last error in string format</summary>
-			/// <returns>The last error in a formatted string</returns>
+			/// @brief Get the last error in string format
+			/// @return The last error in a formatted string
 			std::string GetLastError();
 
 		protected:
 		private:
-			/// <summary>Validates an IP address is IPv4 or IPv6</summary>
-			/// <param name="ip"> -[in]- IP Address to be validated</param>
-			/// <returns>-1 = bad IP, 1 = valid IPv4, 2 = valid IPv6</returns>
+			/// @brief Validates an IP address is IPv4 or IPv6
+			/// @param ip - in - IP Address to be validated
+			/// @return -1 = bad IP, 1 = valid IPv4, 2 = valid IPv6
 			int ValidateIP(const std::string& ip);
 
-			/// <summary>Validates a port number is between 0-99999</summary>
-			/// <param name="port"> -[in]- Port number to be validated</param>
-			/// <returns>true = valid, false = invalid</returns>
+			/// @brief Validates a port number is between 0-99999
+			/// @param port - in - Port number to be validated
+			/// @return true = valid, false = invalid
 			bool ValidatePort(const int port);
 
-			/// <summary>Starts a thread to monitor the TCP connection.</summary>
+			/// @brief Starts a thread to monitor the TCP connection.
 			void Monitor();
 
-			/// <summary>Handles a client connection to the server</summary>
-			/// <param name="clientSocket"> -[in]- socket descriptor for the client</param>
-			/// <param name="clientIP"> -[in]- address of the client</param>
+			/// @brief Handles a client connection to the server
+			/// @param clientSocket - in - socket descriptor for the client
+			/// @param clientIP - in - address of the client
 			void HandleClient(int32_t clientSocket, const std::string& clientIP);
 
+			/// @brief Sends server shutdown message to a client
 			int SendShutdownMessage(int32_t clientSocket);
 
 			/// @brief Close a single client connection
@@ -189,7 +226,7 @@ namespace Essentials
 			TcpServerError mLastError;			// Holds last error of the TCP server
 			std::thread mMonitorThread;			// Holds the thread for the monitor. 
 			std::atomic<bool> mStopFlag;		// Stop flag for the server. 
-			std::vector<ClientConnection> mClients;	
+			std::vector<Client> mClients;	
 
 #ifdef WIN32
 			WSADATA mWsaData;
@@ -200,4 +237,4 @@ namespace Essentials
 
 } // Essentials
 
-#endif // CPP_TCP_SERVER
+#endif // TCP_SERVER

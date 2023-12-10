@@ -247,8 +247,8 @@ namespace Essentials
 
 				try
 				{
-					// Create a new ClientConnection object directly in the mClients vector
-					mClients.emplace_back(ClientConnection(clientSocket, std::string(clientIP)));
+					// Create a new Client object directly in the mClients vector
+					mClients.emplace_back(Client(clientSocket, std::string(clientIP)));
 					auto& newClient = mClients.back(); // Get a reference to the newly added client
 
 					// Start the thread for handling the client connection
@@ -256,7 +256,7 @@ namespace Essentials
 				}
 				catch(const std::exception& e)
 				{
-					// Handle exception if failed to create ClientConnection and close the socket
+					// Handle exception if failed to create Client and close the socket
 					std::cerr << "Error handling client connection: " << e.what() << std::endl;
 					CloseClientSocket(clientSocket);
 				}
@@ -334,24 +334,6 @@ namespace Essentials
 			shutdown(clientSocket, SHUT_RDWR);
 			close(clientSocket);
 #endif
-		}
-
-		void TCP_Server::CleanUpClientThreads()
-		{
-			auto it = mClients.begin();
-			while (it != mClients.end()) 
-			{
-				std::lock_guard<std::mutex> clientLock(it->mutex);
-				if (it->thread.joinable()) 
-				{
-					it->thread.join();
-					it = mClients.erase(it);
-				}
-				else 
-				{
-					++it;
-				}
-			}
 		}
 	
 	}

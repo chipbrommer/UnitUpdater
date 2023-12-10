@@ -1,8 +1,8 @@
 ﻿#include "UnitUpdater.h"
 
-
 UnitUpdater::UnitUpdater() 
 {
+	// Initialize
 	mLastError				= 0;
 	mMaxBroadcastListeningTimeInMSec	= DEFAULT_TIMELENGTH_MSEC;
     mBroadcastPort			= 0;
@@ -11,6 +11,11 @@ UnitUpdater::UnitUpdater()
 	mUdp					= new Essentials::Communications::UDP_Client();
     mTcp					= new Essentials::Communications::TCP_Server();
 	mTimer					= Essentials::Utilities::Timer::GetInstance();
+
+	// Welcome message
+	std::cout << "------------------------------------\n";
+	std::cout << "-           Unit Updater           -\n";
+	std::cout << "------------------------------------\n" << std::endl;
 }
 
 UnitUpdater::UnitUpdater(int bPort, int tPort) : UnitUpdater()
