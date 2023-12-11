@@ -92,8 +92,11 @@ namespace Essentials
 		TCP_Server::~TCP_Server()
 		{
 			Stop();
-
+#ifdef WIN32
+			FD_ZERO(&mFDs);
+#else
 			delete[] mFDs;
+#endif
 		}
 
 		int TCP_Server::Start()
@@ -168,9 +171,27 @@ namespace Essentials
 				mLastError = TcpServerError::LISTEN_FAILED;
 				return -1;
 			}
-
+#ifdef WIN32
+			FD_ZERO(&mFDs);
+			FD_SET(mSocket, &mFDs);
+#else
+			memset(mFDs, 0, sizeof(mFDs));
+#endif
 			mStopFlag = false;
 			return 0;
+		}
+
+		int TCP_Server::Run()
+		{
+#ifdef WIN32
+			fd_set reads;
+			reads = mFDs;
+#else
+
+#endif
+
+			// default return 
+			return -1;
 		}
 
 		void TCP_Server::Stop()
@@ -189,6 +210,11 @@ namespace Essentials
 			mSocket = -1;
 #endif
 			std::cout << "[SERVER] Stopped." << std::endl;
+		}
+
+		int TCP_Server::SendMessageToClient(const int clientFD, const uint8_t* msg)
+		{
+			return -1;
 		}
 
 		std::string TCP_Server::GetLastError()

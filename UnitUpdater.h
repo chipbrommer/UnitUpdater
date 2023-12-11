@@ -23,7 +23,8 @@ public:
     void    Close();
 protected:
 private:
-    bool    IsPacketValid(uint8_t* buffer);
+    bool    IsPacketValid(const uint8_t* buffer);
+    UPDATER_ACTION_MESSAGE GetMessageFromBuffer(const uint8_t* buffer);
     int     SendAcknowledgement(const std::string ip, const int port, const MSG_TYPE type);
 
     int     mLastError;

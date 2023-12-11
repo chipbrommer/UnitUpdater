@@ -103,8 +103,90 @@ int UnitUpdater::StartServer()
 	return 0;
 }
 
-int UnitUpdater::HandleMessage(const int clientFD, const std::string& msg)
+int UnitUpdater::HandleMessage(const int clientFD, const std::string& data)
 {
+	if (IsPacketValid(reinterpret_cast<const uint8_t*>(data.c_str())))
+	{
+		UPDATER_ACTION_MESSAGE msg = { 0 };
+		memcpy(&msg, data.c_str(), sizeof(msg));
+
+		struct RESPONSE_MSG
+		{
+			UPDATER_HEADER	header	= { SYNC1, SYNC2, SYNC3, SYNC4, 0 };
+			std::uint32_t	action	= 0;
+			std::uint32_t	status	= 0;
+			std::string		data	= "";
+			UPDATER_FOOTER	footer	= { EOB };
+		};
+
+		switch (msg.action)
+		{
+		case ACTION_COMMAND::CLOSE:					
+			mCloseRequested = true;
+			break;
+		case ACTION_COMMAND::BOOT_INTERRUPT:
+			// Handled in ListenForInterrupt()
+		case ACTION_COMMAND::GET_AS_BUILT:
+			{
+				std::string response;
+				RESPONSE_MSG msgOut;
+
+				// Read the contents of the JSON file
+				std::ifstream inputFile(mSettings.asBuiltLocation);
+
+				if (inputFile.is_open()) 
+				{
+					std::string line;
+
+					while (getline(inputFile, line)) 
+					{
+						response += line;
+					}
+					inputFile.close();
+
+					msgOut.action = ACTION_COMMAND::GET_AS_BUILT;
+					msgOut.status = ACTION_STATUS::SUCCESS;
+					msgOut.data = response;
+				}
+				else 
+				{
+					// Error opening file - respond with failure
+					msgOut.action = ACTION_COMMAND::GET_AS_BUILT;
+					msgOut.status = ACTION_STATUS::FAIL;
+					msgOut.data = response;
+				}
+
+				uint8_t buffer[8] = { 0 };
+				mTcp->SendMessageToClient(clientFD, buffer);
+			}
+			break;
+		case ACTION_COMMAND::UPDATE_OFS:
+			mUpdateInProgress = true;
+			// @todo - write bytes to a temp file until we have received all the bytes
+			break;
+		case ACTION_COMMAND::UPDATE_CONFIG:
+			{
+
+			}
+			break;
+		case ACTION_COMMAND::GET_LOG_NAMES:
+			{
+
+			}
+			break;
+		case ACTION_COMMAND::GET_SPECIFIC_LOG:
+			{
+
+			}
+			break;
+		case ACTION_COMMAND::GET_LAST_FLIGHT_LOG:
+			{
+
+			}
+			break;
+		}
+	}
+
 	return -1;
 }
 
@@ -133,30 +215,35 @@ int UnitUpdater::ListenForInterrupt()
 			std::cout << mUdp->GetLastError() << std::endl;
 			return -1;
 		}
-		else if (bytesReceived > 0)
+		else if (bytesReceived >= sizeof(UPDATER_ACTION_MESSAGE) && IsPacketValid(buffer))
 		{
-			if (bytesReceived >= sizeof(UPDATER_ACTION_MESSAGE))
+			UPDATER_ACTION_MESSAGE msg = GetMessageFromBuffer(buffer);
+
+			if (msg.action == ACTION_COMMAND::BOOT_INTERRUPT)
 			{
-				if (IsPacketValid(buffer))
+				// Get the senders info
+				std::string ip;
+				int port;
+				mUdp->GetLastSendersInfo(ip, port);
+				mUdp->ConfigureThisClient("", 8080);
+				mUdp->OpenUnicast();
+
+				// Respond to sender with ack
+				int rtn = SendAcknowledgement("127.0.0.1", 8080, MSG_TYPE::BOOT_INTERRUPT);
+				if (rtn < 0)
 				{
-					// Get the senders info
-					std::string ip;
-					int port;
-					mUdp->GetLastSendersInfo(ip, port);
-					mUdp->ConfigureThisClient("", 8080);
-					mUdp->OpenUnicast();
-
-					// Respond to sender with ack
-					int rtn = SendAcknowledgement("127.0.0.1", 8080, MSG_TYPE::BOOT_INTERRUPT);
-					if (rtn < 0)
-					{
-						std::cout << "[UPDATER] Failed to send broadcast response";
-						return -1;
-					}
-
-					std::cout << "[UPDATER] Broadcast Ack sent to " + ip + ":" +std::to_string(port) + "\n";
-					return 1;									
+					std::cout << "[UPDATER] Failed to send broadcast response";
+					return -1;
 				}
+
+				std::cout << "[UPDATER] Broadcast Ack sent to " + ip + ":" + std::to_string(port) + "\n";
+				return 1;
+			}
+			else
+			{
+				// Not a boot interrupt message, disregard it. 
+				// Do I want to send an ack here even if its not a boot interrupt message  ?
+				continue;
 			}
 		}
 
@@ -167,7 +254,7 @@ int UnitUpdater::ListenForInterrupt()
 	return 0;
 }
 
-bool UnitUpdater::IsPacketValid(uint8_t* buffer)
+bool UnitUpdater::IsPacketValid(const uint8_t* buffer)
 {
 	if (buffer[0] == SYNC1 &&
 		buffer[1] == SYNC2 &&
@@ -176,12 +263,11 @@ bool UnitUpdater::IsPacketValid(uint8_t* buffer)
 		buffer[4] == sizeof(UPDATER_ACTION_MESSAGE)
 		)
 	{
-		UPDATER_ACTION_MESSAGE msg = {0};
-		memcpy(&msg, buffer, sizeof(msg));
+		UPDATER_ACTION_MESSAGE msg = GetMessageFromBuffer(buffer);
 
 		switch (msg.action)
 		{
-		case ACTION_COMMAND::CLOSE:					mCloseRequested = true; break;
+		case ACTION_COMMAND::CLOSE:
 		case ACTION_COMMAND::BOOT_INTERRUPT:
 		case ACTION_COMMAND::GET_AS_BUILT:
 		case ACTION_COMMAND::UPDATE_OFS:
@@ -193,6 +279,13 @@ bool UnitUpdater::IsPacketValid(uint8_t* buffer)
 		}
 	}
 	return false;
+}
+
+UPDATER_ACTION_MESSAGE UnitUpdater::GetMessageFromBuffer(const uint8_t* buffer)
+{
+	UPDATER_ACTION_MESSAGE msg = { 0 };
+	memcpy(&msg, buffer, sizeof(msg));
+	return msg;
 }
 
 int UnitUpdater::SendAcknowledgement(const std::string ip, const int port, const MSG_TYPE type)

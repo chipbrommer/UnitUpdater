@@ -52,7 +52,7 @@ namespace Essentials
 		{
 			std::string ip;					// ip address of the client
 			std::uint16_t port;				// port of the client
-			std::int32_t socket;			// socket of the client
+			SOCKET socket;					// socket of the client
 			std::int32_t bytesReceived;		// number of bytes received from the client
 			std::int32_t bytesWritten;		// number of bytes written to the client
 			std::int32_t timeConnected;		// the timestamp when the client was connected to the server
@@ -187,8 +187,14 @@ namespace Essentials
 			/// @return 0 if successful, -1 if fails. Call Serial::GetLastError to find out more.
 			int Start();
 
+			/// @brief a blocking function that runs the server interface and listens for clients communication
+			int Run();
+
 			/// @brief Stops the server if it is running
 			void Stop();
+
+			/// @brief Sends a message to a client 
+			int SendMessageToClient(const int clientFD, const uint8_t* msg);
 
 			/// @brief Get the last error in string format
 			/// @return The last error in a formatted string
@@ -234,7 +240,6 @@ namespace Essentials
 			std::atomic<bool> mStopFlag;		// Stop flag for the server. 
 			std::vector<Client> mClients;		// Vector of clients
 			SOCKET mSocket;						// Server socket
-			pollfd* mFDs;						// Pointer for an array of file descriptors
 
 			// callback function to be called when server gets a new connection
 			std::function<int(const int fd)> mNewConnectionHandler;
@@ -246,7 +251,10 @@ namespace Essentials
 			std::function<int(const int fd)> mDisconnectHandler;						
 
 #ifdef WIN32
-			WSADATA mWsaData;
+			WSADATA mWsaData;					// Win socket data
+			fd_set	mFDs;						// Windows FD list
+#else
+			pollfd* mFDs;						// Pointer for an array of file descriptors
 #endif
 		};
 

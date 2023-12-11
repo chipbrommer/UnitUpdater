@@ -5,9 +5,11 @@ int main()
 	// Create unit updater instance
 	UnitUpdater uu;
 
+	std::string pcPath = "C:\\Users\\chipb\\source\\repos\\chipbrommer\\UnitUpdater\\test_files\\settings.json";
+	std::string wkPath = "C:\\Users\\cbrommer\\source\\repos\\UnitUpdater\\test_files\\settings.json";
+
 	// Setup
-	// C:\\Users\\chipb\\source\\repos\\chipbrommer\\UnitUpdater
-	if (uu.Setup("C:\\Users\\chipb\\source\\repos\\chipbrommer\\UnitUpdater\\test_files\\settings.json") < 0)
+	if (uu.Setup(wkPath) < 0)
 	{
 		std::cout << "Failed to setup Updater. Closing\n";
 		uu.Close();

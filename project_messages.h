@@ -15,11 +15,12 @@
 
 #pragma pack(push, 1)
 
-constexpr uint8_t   SYNC1 = 0x1A;
-constexpr uint8_t   SYNC2 = 0xBA;
-constexpr uint8_t   SYNC3 = 0xF1;
-constexpr uint8_t   SYNC4 = 0xD5;
-constexpr uint16_t  ACKNOWLEDGE     = 0xBA21;
+constexpr uint8_t   SYNC1       = 0x1A;
+constexpr uint8_t   SYNC2       = 0xBA;
+constexpr uint8_t   SYNC3       = 0xF1;
+constexpr uint8_t   SYNC4       = 0xD5;
+constexpr uint16_t  ACKNOWLEDGE = 0xBA21;
+constexpr uint16_t  EOB         = 0xA5E1;
 
 enum class MSG_TYPE
 {
@@ -32,7 +33,7 @@ enum class MSG_TYPE
     GET_LAST_FLIGHT_LOG,
 };
 
-enum ACTION_COMMAND : unsigned int
+enum ACTION_COMMAND : std::uint32_t
 {
     BOOT_INTERRUPT      = 0xB3C3B4A1,
     GET_AS_BUILT        = 0xB4C3B4A2,
@@ -44,18 +45,24 @@ enum ACTION_COMMAND : unsigned int
     CLOSE               = 0xA4C3B4A8,
 };
 
+enum ACTION_STATUS : std::uint32_t
+{
+    SUCCESS = 0x0001A5E1,
+    FAIL    = 0x0002A5E1,
+};
+
 struct UPDATER_HEADER
 {
     uint8_t         sync1;
     uint8_t         sync2;
     uint8_t         sync3;
     uint8_t         sync4;
-    uint8_t         msgSize;
+    uint32_t        msgSize;
 };
 
 struct UPDATER_FOOTER
 {
-    uint8_t         checksum;
+    uint16_t        eob;
 };
 
 struct UPDATER_ACTION_MESSAGE
