@@ -171,6 +171,7 @@ namespace Essentials
 				mLastError = TcpServerError::LISTEN_FAILED;
 				return -1;
 			}
+
 #ifdef WIN32
 			FD_ZERO(&mFDs);
 			FD_SET(mSocket, &mFDs);
