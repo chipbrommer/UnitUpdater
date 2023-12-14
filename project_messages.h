@@ -10,6 +10,7 @@
 //          name                        reason included
 //          --------------------        ---------------------------------------
 #include <cstdint>                      // standard types
+#include <string>                       // strings
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -78,6 +79,15 @@ struct UPDATER_ACTION_ACK
     uint32_t        action;
     uint16_t        ack;
     UPDATER_FOOTER  footer;
+};
+
+struct RESPONSE_MSG
+{
+    UPDATER_HEADER	header = { SYNC1, SYNC2, SYNC3, SYNC4, 0 };
+    std::uint32_t	action = 0;
+    std::uint32_t	status = 0;
+    std::string		data = "";
+    UPDATER_FOOTER	footer = { EOB };
 };
 
 #pragma pack(pop)

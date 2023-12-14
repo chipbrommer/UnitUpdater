@@ -156,6 +156,7 @@ namespace Essentials
 				ACCEPT_FAILED,
 				ECHO_FAILED,
 				RECEIVE_FAILED,
+				SEND_FAILED,
 			};
 
 			/// @brief Error enum to string map
@@ -193,8 +194,18 @@ namespace Essentials
 			/// @brief Stops the server if it is running
 			void Stop();
 
+			/// @brief Sends a buffer to a client 
+			/// @param clientFD - in - the file descriptor for the client to send to
+			/// @param msg - in - the buffer to be sent to the client
+			/// @param msgSize - in - the size of the data to be sent. 
+			/// @return -1 on error, else number of bytes sent
+			int SendBufferToClient(const int clientFD, const uint8_t* msg, const int msgSize);
+
 			/// @brief Sends a message to a client 
-			int SendMessageToClient(const int clientFD, const uint8_t* msg);
+			/// @param clientFD - in - the file descriptor for the client to send to
+			/// @param msg - in - the buffer to be sent to the client
+			/// @return -1 on error, else number of bytes sent
+			int SendMessageToClient(const int clientFD, const std::string& msg);
 
 			/// @brief Get the last error in string format
 			/// @return The last error in a formatted string
@@ -225,10 +236,10 @@ namespace Essentials
 			bool ValidatePort(const int port);
 
 			/// @brief Sends server shutdown message to a client
-			int SendShutdownMessage(int32_t clientSocket);
+			int SendShutdownMessage(SOCKET clientSocket);
 
 			/// @brief Close a single client connection
-			void CloseClientSocket(int32_t clientSocket);
+			void CloseClientSocket(SOCKET clientSocket);
 			
 			/// @brief Close all client sockets in mClient vector
 			void CloseAllClientSockets();

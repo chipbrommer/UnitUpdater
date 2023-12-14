@@ -28,26 +28,28 @@ constexpr int MINIMUM_CONNECTIONS       = 1;
 /// @brief A structure to represent a settings file
 struct Settings 
 {
-    std::string ofsLocation;        // OFS location
-    std::string asBuiltLocation;    // As-Built log location
-    std::string sdcardLocation;     // Location of SD Card mounting folder
-    int broadcastTimeoutMSec;       // Timeout for broadcast listening
-    int broadcastPort;              // Port for broadcast listening
-    int communicationPort;          // Port for direct communication
-    int maximumConnections;         // Maximum number of connections for TCP server 
+    std::string ofsLocation;                // OFS location
+    std::string ofsNonWebConfigLocation;    // OFS non webpage config location
+    std::string asBuiltLocation;            // As-Built log location
+    std::string sdcardLocation;             // Location of SD Card mounting folder
+    int broadcastTimeoutMSec;               // Timeout for broadcast listening
+    int broadcastPort;                      // Port for broadcast listening
+    int communicationPort;                  // Port for direct communication
+    int maximumConnections;                 // Maximum number of connections for TCP server 
 
     // @brief Default Constructor
-    Settings() : ofsLocation(""), asBuiltLocation(""), sdcardLocation(""), broadcastTimeoutMSec(DEFAULT_BROADCAST_TIMEOUT), 
+    Settings() : ofsLocation(""), ofsNonWebConfigLocation(""), asBuiltLocation(""), sdcardLocation(""), broadcastTimeoutMSec(DEFAULT_BROADCAST_TIMEOUT),
         broadcastPort(DEFAULT_BROADCAST_PORT), communicationPort(DEFAULT_COMMS_PORT), maximumConnections(DEFAULT_CONNECTIONS_LIMIT) {}
 
     /// @brief Constructor
     /// @param ofsLocation - location of the OFS 
+    /// @param ofsNonWebConfigLocation - location of the non-webpage config
     /// @param asBuiltLocation - location of the as-built log
     /// @param sdcardLocation - location of the sdcard mount folder
     /// @param broadcastTimeoutMSec - timeout for broadcast listening
-    Settings(const std::string& ofsLocation, const std::string& asBuiltLocation, const std::string& sdcardLocation, 
+    Settings(const std::string& ofsLocation, const std::string& configLocation, const std::string& asBuiltLocation, const std::string& sdcardLocation, 
         const int broadcastTimeoutMSec, const int broadcastPort, const int communicationPort, const int maximumConnections)
-        : ofsLocation(ofsLocation), asBuiltLocation(asBuiltLocation), sdcardLocation(sdcardLocation), 
+        : ofsLocation(ofsLocation), ofsNonWebConfigLocation(configLocation), asBuiltLocation(asBuiltLocation), sdcardLocation(sdcardLocation),
         broadcastTimeoutMSec(broadcastTimeoutMSec), broadcastPort(broadcastPort), communicationPort(communicationPort), maximumConnections(maximumConnections)
     {
         // Ensure broadcastTimeoutMSec is at least 1000
@@ -66,12 +68,13 @@ struct Settings
     /// @return - true if equal
     bool operator == (const Settings& rhs) const 
     {
-        return (ofsLocation             == rhs.ofsLocation          &&
-                asBuiltLocation         == rhs.asBuiltLocation      &&
-                sdcardLocation          == rhs.sdcardLocation       &&
-                broadcastTimeoutMSec    == rhs.broadcastTimeoutMSec &&
-                broadcastPort           == rhs.broadcastPort        &&
-                communicationPort       == rhs.communicationPort    &&
+        return (ofsLocation             == rhs.ofsLocation              &&
+                ofsNonWebConfigLocation == rhs.ofsNonWebConfigLocation  &&
+                asBuiltLocation         == rhs.asBuiltLocation          &&
+                sdcardLocation          == rhs.sdcardLocation           &&
+                broadcastTimeoutMSec    == rhs.broadcastTimeoutMSec     &&
+                broadcastPort           == rhs.broadcastPort            &&
+                communicationPort       == rhs.communicationPort        &&
                 maximumConnections      == rhs.maximumConnections);
     }
 
@@ -81,6 +84,7 @@ struct Settings
     {
         nlohmann::json settingsJson;
         settingsJson["ofsLocation"] = ofsLocation;
+        settingsJson["ofsNonWebConfigLocation"] = ofsNonWebConfigLocation;
         settingsJson["asBuiltLocation"] = asBuiltLocation;
         settingsJson["sdcardLocation"] = sdcardLocation;
         settingsJson["broadcastTimeoutMSec"] = broadcastTimeoutMSec;
@@ -97,6 +101,7 @@ struct Settings
         try 
         {
             ofsLocation             = j.at("ofsLocation").get<std::string>();
+            ofsNonWebConfigLocation = j.at("ofsNonWebConfigLocation").get<std::string>();
             asBuiltLocation         = j.at("asBuiltLocation").get<std::string>();
             sdcardLocation          = j.at("sdcardLocation").get<std::string>();
 
@@ -169,12 +174,13 @@ struct Settings
     void Print() const 
     {
         std::cout << "[SETTINGS]" << std::endl;
-        std::cout << "\tofsLocation:          " << this->ofsLocation            << std::endl;
-        std::cout << "\tasBuiltLocation:      " << this->asBuiltLocation        << std::endl;
-        std::cout << "\tsdcardLocation:       " << this->sdcardLocation         << std::endl;
-        std::cout << "\tbroadcastTimeoutMSec: " << this->broadcastTimeoutMSec   << std::endl;
-        std::cout << "\tbroadcastPort:        " << this->broadcastPort          << std::endl;
-        std::cout << "\tcommunicationPort:    " << this->communicationPort      << std::endl;
-        std::cout << "\tmaximumConnections:   " << this->maximumConnections     << std::endl;
+        std::cout << "\tofsLocation:             " << this->ofsLocation             << std::endl;
+        std::cout << "\tofsNonWebConfigLocation: " << this->ofsNonWebConfigLocation << std::endl;
+        std::cout << "\tasBuiltLocation:         " << this->asBuiltLocation         << std::endl;
+        std::cout << "\tsdcardLocation:          " << this->sdcardLocation          << std::endl;
+        std::cout << "\tbroadcastTimeoutMSec:    " << this->broadcastTimeoutMSec    << std::endl;
+        std::cout << "\tbroadcastPort:           " << this->broadcastPort           << std::endl;
+        std::cout << "\tcommunicationPort:       " << this->communicationPort       << std::endl;
+        std::cout << "\tmaximumConnections:      " << this->maximumConnections      << std::endl;
     }
 };

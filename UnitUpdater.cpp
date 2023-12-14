@@ -96,7 +96,7 @@ int UnitUpdater::StartServer()
 
 	while(!mCloseRequested)
 	{
-		// server running
+		// tcp server running
 	}
 
 	mTcp->Stop();
@@ -110,15 +110,6 @@ int UnitUpdater::HandleMessage(const int clientFD, const std::string& data)
 		UPDATER_ACTION_MESSAGE msg = { 0 };
 		memcpy(&msg, data.c_str(), sizeof(msg));
 
-		struct RESPONSE_MSG
-		{
-			UPDATER_HEADER	header	= { SYNC1, SYNC2, SYNC3, SYNC4, 0 };
-			std::uint32_t	action	= 0;
-			std::uint32_t	status	= 0;
-			std::string		data	= "";
-			UPDATER_FOOTER	footer	= { EOB };
-		};
-
 		switch (msg.action)
 		{
 		case ACTION_COMMAND::CLOSE:					
@@ -126,6 +117,7 @@ int UnitUpdater::HandleMessage(const int clientFD, const std::string& data)
 			break;
 		case ACTION_COMMAND::BOOT_INTERRUPT:
 			// Handled in ListenForInterrupt()
+			break;
 		case ACTION_COMMAND::GET_AS_BUILT:
 			{
 				std::string response;
@@ -156,8 +148,8 @@ int UnitUpdater::HandleMessage(const int clientFD, const std::string& data)
 					msgOut.data = response;
 				}
 
-				uint8_t buffer[8] = { 0 };
-				mTcp->SendMessageToClient(clientFD, buffer);
+				std::string serializedData = SerializeResponseMsg(msgOut);
+				mTcp->SendBufferToClient(clientFD, reinterpret_cast<const uint8_t*>(serializedData.data()), serializedData.size());
 			}
 			break;
 		case ACTION_COMMAND::UPDATE_OFS:
@@ -165,10 +157,41 @@ int UnitUpdater::HandleMessage(const int clientFD, const std::string& data)
 			// @todo - write bytes to a temp file until we have received all the bytes
 			break;
 		case ACTION_COMMAND::UPDATE_CONFIG:
-			{
+		{
+			// @todo - take the received data and validate it and then write to the file if its good. 
 
+			std::string response;
+			RESPONSE_MSG msgOut;
+
+			// Read the contents of the JSON file
+			std::ifstream inputFile(mSettings.ofsLocation);
+
+			if (inputFile.is_open())
+			{
+				std::string line;
+
+				while (getline(inputFile, line))
+				{
+					response += line;
+				}
+				inputFile.close();
+
+				msgOut.action = ACTION_COMMAND::UPDATE_CONFIG;
+				msgOut.status = ACTION_STATUS::SUCCESS;
+				msgOut.data = response;
 			}
-			break;
+			else
+			{
+				// Error opening file - respond with failure
+				msgOut.action = ACTION_COMMAND::GET_AS_BUILT;
+				msgOut.status = ACTION_STATUS::FAIL;
+				msgOut.data = response;
+			}
+
+			std::string serializedData = SerializeResponseMsg(msgOut);
+			mTcp->SendBufferToClient(clientFD, reinterpret_cast<const uint8_t*>(serializedData.data()), serializedData.size());
+		}
+		break;
 		case ACTION_COMMAND::GET_LOG_NAMES:
 			{
 
@@ -279,6 +302,26 @@ bool UnitUpdater::IsPacketValid(const uint8_t* buffer)
 		}
 	}
 	return false;
+}
+
+std::string UnitUpdater::SerializeResponseMsg(const RESPONSE_MSG& responseMsg)
+{
+	std::stringstream ss;
+
+	// Serialize the structure members into a buffer
+	ss.write(reinterpret_cast<const char*>(&responseMsg.header), sizeof(responseMsg.header));
+	ss.write(reinterpret_cast<const char*>(&responseMsg.action), sizeof(responseMsg.action));
+	ss.write(reinterpret_cast<const char*>(&responseMsg.status), sizeof(responseMsg.status));
+
+	// Serialize the 'data' string separately
+	size_t dataSize = responseMsg.data.size();
+	ss.write(reinterpret_cast<const char*>(&dataSize), sizeof(dataSize));
+	ss.write(responseMsg.data.c_str(), dataSize);
+
+	ss.write(reinterpret_cast<const char*>(&responseMsg.footer), sizeof(responseMsg.footer));
+
+	// Get the serialized data as a string
+	return ss.str();
 }
 
 UPDATER_ACTION_MESSAGE UnitUpdater::GetMessageFromBuffer(const uint8_t* buffer)

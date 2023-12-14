@@ -213,9 +213,34 @@ namespace Essentials
 			std::cout << "[SERVER] Stopped." << std::endl;
 		}
 
-		int TCP_Server::SendMessageToClient(const int clientFD, const uint8_t* msg)
+		int TCP_Server::SendBufferToClient(const int clientFD, const uint8_t* msg, const int msgSize) 
 		{
-			return -1;
+			if (clientFD <= 0 || clientFD == mSocket || msg == nullptr || msgSize == 0) 
+			{
+				return -1; 
+			}
+
+			int bytesSent = send(clientFD, reinterpret_cast<const char*>(msg), msgSize, 0);
+			if (bytesSent < 0) 
+			{
+				mLastError = TcpServerError::SEND_FAILED;
+				return -1;
+			}
+
+			return bytesSent;
+		}
+
+		int TCP_Server::SendMessageToClient(const int clientFD, const std::string& message) 
+		{
+			if (clientFD <= 0 || clientFD == mSocket || message.empty())
+			{
+				return -1;
+			}
+
+			const uint8_t* msgBuffer = reinterpret_cast<const uint8_t*>(message.c_str());
+			size_t msgSize = message.length();
+
+			return SendBufferToClient(clientFD, msgBuffer, msgSize);
 		}
 
 		std::string TCP_Server::GetLastError()
@@ -276,13 +301,13 @@ namespace Essentials
 			}
 		}
 
-		int TCP_Server::SendShutdownMessage(int32_t clientSocket)
+		int TCP_Server::SendShutdownMessage(SOCKET clientSocket)
 		{
 			const char* shutdownMessage = "SERVER_SHUTDOWN";
 			return send(clientSocket, shutdownMessage, strlen(shutdownMessage), 0);
 		}
 
-		void TCP_Server::CloseClientSocket(int32_t clientSocket) 
+		void TCP_Server::CloseClientSocket(SOCKET clientSocket) 
 		{
 #ifdef _WIN32
 			shutdown(clientSocket, SD_BOTH);

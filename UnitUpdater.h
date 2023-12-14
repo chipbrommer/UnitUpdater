@@ -24,6 +24,7 @@ public:
 protected:
 private:
     bool    IsPacketValid(const uint8_t* buffer);
+    std::string SerializeResponseMsg(const RESPONSE_MSG& msg);
     UPDATER_ACTION_MESSAGE GetMessageFromBuffer(const uint8_t* buffer);
     int     SendAcknowledgement(const std::string ip, const int port, const MSG_TYPE type);
 
